@@ -1,0 +1,19 @@
+&input
+Nstep = 32000,
+Nwalker = 34560,
+Natoms = 7,
+temp = 0.00001,
+factor = 1000.0,
+steptowrite = 10,
+dt  = 0.0005,
+ratio = 0.2
+x_ini =  0.1  1.5
+y_ini =  0.2  1.5
+z_ini =  0.3  0.0
+mode = "load"
+Vswitch = .false.
+Debag = .false.
+Dist_switch = .false.
+fin = "atoms.dat"
+fout = "out.dat"
+/

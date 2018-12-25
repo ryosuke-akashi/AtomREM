@@ -1,0 +1,15 @@
+F90   = mpiifort 
+OBJ   = mt19937.o potentials.o main.o
+SRC   = mt19937.f90 potentials.f90 main.f90
+#DEBUG = -g -traceback  -CB -fpe0
+DEBUG = -O3#-g -traceback  #-CB
+a.out:$(OBJ)
+	$(F90) $(DEBUG) $(OBJ)  -o $@
+mt19937.o: mt19937.f90
+	$(F90) $(DEBUG) -c $< 
+potentials.o: potentials.f90
+	$(F90) $(DEBUG) -c $< 
+main.o: main.f90
+	$(F90) $(DEBUG) -c $<
+clean:
+	rm a.out *.o *.mod log* out* dist* *.sh.* path.dat atomic* E_atoms* ENERGY/*  COORDINATES/* ; clear 
