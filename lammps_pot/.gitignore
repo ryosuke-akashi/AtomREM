@@ -1,0 +1,7 @@
+Makefile
+*.dat
+*.o
+*.mod
+atoms.dat
+param_3N.in
+a.out

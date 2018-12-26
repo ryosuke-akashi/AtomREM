@@ -417,7 +417,7 @@ module routines
      real(8) :: Vdiff2X(Nwalker,Natoms)
      real(8) :: Vdiff2Y(Nwalker,Natoms)
      real(8) :: Vdiff2Z(Nwalker,Natoms)
-     !! Akashi modified the shape
+     !! Akashi modified the shape aa
      !real(8) :: weight(Nwalker,Natoms)
      real(8) :: weight(Nwalker)
      !!/Akashi modified the shape
