@@ -9,48 +9,6 @@
 ! With reaction path the atomic coordinates also are saved  
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-module bistable1d_val
-  implicit none
-
-  integer, save :: &
-  & Nstep,         & ! number of steps
-  & Nwalker,       & ! number of walkers
-  & Natoms,        & ! number of atoms 
-  & Nregions,        & ! number of lammps calculations done at one time
-  & Ncycles,        & ! number of lammps calculations
-  & steptowrite      ! number of steps in order to write the path and other data
-
-
-  real(8), save :: &
-  & temp,          & ! temperature [Kelvin]
-  & factor,        & ! heating factor T_eff = temp*factor
-  & x_ini(2),         & ! initial x1 and x2 positions for mode=initial
-  & y_ini(2),         & ! initial y1 and y2 positions for mode=initial
-  & z_ini(2),         & ! initial z1 and z2 positions for mode=initial
-  & dt,               & ! timestep
-  & ratio,            & ! delta parameter in equation
-  & ratio_ctrl          ! delta parameter in equation !! AKASHI
-
-  character(256), save :: &
-  & mode,          &  ! initial mode 
-  & &                 ! 'initial':delta function
-  & &                 ! 'load'   :read from file
-  & fin,           &  ! walker input filename
-  & fout              ! walker output filename
-
-  logical, save :: &
-  & Vswitch , Dist_switch, Debag          ! on or off V, saving of distribution and debagging info
-
-  integer, allocatable, save :: &
-  & itype(:)          ! index of atom types
-
-  real(8), allocatable, save :: &
-  & x_pos(:,:), &
-  & y_pos(:,:), &
-  & z_pos(:,:)
-
-end module bistable1d_val
-
 module routines
   implicit none
   include 'mpif.h'
@@ -246,11 +204,18 @@ module routines
   !-----------
    subroutine stdin()
    use bistable1d_val, only : Nstep, Nwalker, Natoms, temp, factor,steptowrite,x_ini, y_ini, z_ini, dt, ratio, &
-  &                           mode, fin, fout,Vswitch, Dist_switch,Debag 
+  &                           mode, fin, fout,Vswitch, Dist_switch,Debag,                                      &
+  &                           a_orig, a_vec, b_vec, bounds
 
    use val_mpi, only: ierr, myrank, nprocs
+
+   real(8) :: x_orig, y_orig, z_orig
+   real(8) :: a_vec1(3), a_vec2(3), a_vec3(3)
+   real(8) :: vol
    namelist /input/ Nstep, Nwalker, Natoms, temp, factor,steptowrite,x_ini, y_ini, z_ini, &
-  &                 dt, ratio, mode, fin, fout, Vswitch, Dist_switch,Debag 
+  &                 dt, ratio, mode, fin, fout, Vswitch, Dist_switch,Debag,               &
+  &                 x_orig, y_orig, z_orig, a_vec1, a_vec2, a_vec3, bounds
+  
 
    IF(myrank.eq.0)THEN
     open(unit=10,file="param_3N.in",status="unknown")
@@ -266,6 +231,43 @@ module routines
 !   write(*,*)"x_ini=",x_ini(:,Natoms)
 !   write(*,*)"y_ini=",y_ini(:,Natoms)
 !   write(*,*)"z_ini=",z_ini(:,Natoms)a
+
+    ! origin of the space
+    a_orig(1) = x_orig
+    a_orig(2) = y_orig
+    a_orig(3) = z_orig
+    write(*,*)"a_orig",a_orig(:)
+    ! calculate reciprocal lattice vectors so that a_i*b_j=\delta_ij
+    a_vec(1,:) = a_vec1(:)
+    a_vec(2,:) = a_vec2(:)
+    a_vec(3,:) = a_vec3(:)
+    write(*,*)"a_vec1",a_vec(1,:)
+    write(*,*)"a_vec2",a_vec(2,:)
+    write(*,*)"a_vec3",a_vec(3,:)
+    vol = a_vec(1,1)*(a_vec(2,2)*a_vec(3,3)-a_vec(2,3)*a_vec(3,2))  &
+ &       +a_vec(1,2)*(a_vec(2,3)*a_vec(3,1)-a_vec(2,1)*a_vec(3,3))  &
+ &       +a_vec(1,3)*(a_vec(2,1)*a_vec(3,2)-a_vec(2,2)*a_vec(3,1))
+    vol = dabs(vol)
+    b_vec(1,1) = a_vec(2,2)*a_vec(3,3)-a_vec(2,3)*a_vec(3,2)
+    b_vec(1,2) = a_vec(2,3)*a_vec(3,1)-a_vec(2,1)*a_vec(3,3)
+    b_vec(1,3) = a_vec(2,1)*a_vec(3,2)-a_vec(2,2)*a_vec(3,1)
+    b_vec(2,1) = a_vec(3,2)*a_vec(1,3)-a_vec(3,3)*a_vec(1,2)
+    b_vec(2,2) = a_vec(3,3)*a_vec(1,1)-a_vec(3,1)*a_vec(1,3)
+    b_vec(2,3) = a_vec(3,1)*a_vec(1,2)-a_vec(3,2)*a_vec(1,1)
+    b_vec(3,1) = a_vec(1,2)*a_vec(2,3)-a_vec(1,3)*a_vec(2,2)
+    b_vec(3,2) = a_vec(1,3)*a_vec(2,1)-a_vec(1,1)*a_vec(2,3)
+    b_vec(3,3) = a_vec(1,1)*a_vec(2,2)-a_vec(1,2)*a_vec(2,1)
+    b_vec(:,:) = b_vec(:,:)/vol
+    write(*,*)"b_vec1",b_vec(1,:)
+    write(*,*)"b_vec2",b_vec(2,:)
+    write(*,*)"b_vec3",b_vec(3,:)
+    
+    !/calculate reciprocal lattice vectors so that a_i*b_j=\delta_ij
+    ! check boundary condition
+    write(*,*)"bounds"," ", bounds(1)," ", bounds(2)," ", bounds(3)
+    stop
+    !/check boundary condition
+
    ENDIF
    call MPI_BCAST(Nstep   , 1, MPI_INTEGER4, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(Nwalker , 1, MPI_INTEGER4, 0, MPI_COMM_WORLD, ierr)
