@@ -3,5 +3,15 @@ Makefile
 *.o
 *.mod
 atoms.dat
+atoms.dat*
 param_3N.in
+param_3N.in*
 a.out
+out
+a.out.dbg
+submit.sh*
+comments
+in.case
+in.case*
+data.case
+data.case*
