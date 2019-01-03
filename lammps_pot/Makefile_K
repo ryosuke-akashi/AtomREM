@@ -3,13 +3,13 @@ F90   = mpifrtpx
 #CC    = mpiicc 
 CC    = mpifccpx
 CPP   = mpiFCCpx
-OBJ   = libfwrapper2.o val_mpi_lmp.o mt19937.o potentials_lmp.o main.o
+OBJ   = libfwrapper2.o bistable1d_val.o lattice.o val_mpi_lmp.o mt19937.o potentials_lmp.o main.o
 LIB   = -L/home/hp160257/k03212/LAMMPS_lib/lammps-16Feb16/src/ 
 LIBFFTW = -L/opt/klocal/fftw/3.3.3/lib64 -lfftw3 -lfftw3_omp -lfftw3_mpi -lm
 INC   = -I/home/hp160257/k03212/LAMMPS_lib/lammps-16Feb16/src/
 LIBFLAG = -llammps 
 LINK  = --linkfortran
-SRC   = libfwrapper2.c val_mpi_lmp.f90 mt19937.f90 potentials_lmp.f90 main.f90
+SRC   = libfwrapper2.c bistable1d_val.f90 lattice.f90 val_mpi_lmp.f90 mt19937.f90 potentials_lmp.f90 main.f90
 DEBUG = -Kfast,parallel,openmp,noeval,simd=2  -Nline #-fpe0
 #DEBUG = -xHOST -O3 -ipo -static-intel -static_mpi #-fpe0
 #DEBUG = -fast -pie #-fpe0
@@ -19,6 +19,10 @@ a.out:$(OBJ)
 	$(CPP) $(DEBUG) $(LIB) $(OBJ) $(LIBFLAG) $(LIBFFTW)  -o $@ $(LINK)
 libfwrapper2.o: libfwrapper2.c
 	$(CC)  $(DEBUG) $(INC)  -c $<
+bistable1d_val.o: bistable1d_val.f90
+	$(F90) $(DEBUG) -c $< 
+lattice.o: lattice.f90
+	$(F90) $(DEBUG) -c $< 
 val_mpi_lmp.o: val_mpi_lmp.f90
 	$(F90) $(DEBUG) -c $< 
 mt19937.o: mt19937.f90

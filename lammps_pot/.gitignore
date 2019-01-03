@@ -15,3 +15,5 @@ in.case
 in.case*
 data.case
 data.case*
+lammps.log
+log.lammps
