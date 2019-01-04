@@ -1,10 +1,10 @@
 &input
 Nstep = 32000,
-Nwalker = 34560,
-Natoms = 7,
+Nwalker = 320,
+Natoms = 54,
 temp = 0.00001,
 factor = 1000.0,
-steptowrite = 10,
+steptowrite = 50,
 dt  = 0.0005,
 ratio = 0.2
 x_ini =  0.1  1.5
@@ -19,8 +19,8 @@ fout = "out.dat"
 x_orig = -0.5
 y_orig = -0.5
 z_orig = -0.5
-a_vec1 = 2.000 0.000 0.000 
-a_vec2 =-1.000 1.732 0.000 
-a_vec3 = 0.000 0.000 0.500 
-bounds = f f f
+a_vec1 = 3.262080 0.000000 0.000000
+a_vec2 = 0.543680 2.825044 0.000000
+a_vec3 = 0.000000 0.000000 5.326954
+bounds = p p p
 /
