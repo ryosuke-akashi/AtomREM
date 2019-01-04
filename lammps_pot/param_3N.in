@@ -16,4 +16,11 @@ Debag = .false.
 Dist_switch = .false.
 fin = "atoms.dat"
 fout = "out.dat"
+x_orig = -0.5
+y_orig = -0.5
+z_orig = -0.5
+a_vec1 = 2.000 0.000 0.000 
+a_vec2 =-1.000 1.732 0.000 
+a_vec3 = 0.000 0.000 0.500 
+bounds = f f f
 /

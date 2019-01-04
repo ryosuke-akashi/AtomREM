@@ -9,48 +9,6 @@
 ! With reaction path the atomic coordinates also are saved  
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-module bistable1d_val
-  implicit none
-
-  integer, save :: &
-  & Nstep,         & ! number of steps
-  & Nwalker,       & ! number of walkers
-  & Natoms,        & ! number of atoms 
-  & Nregions,        & ! number of lammps calculations done at one time
-  & Ncycles,        & ! number of lammps calculations
-  & steptowrite      ! number of steps in order to write the path and other data
-
-
-  real(8), save :: &
-  & temp,          & ! temperature [Kelvin]
-  & factor,        & ! heating factor T_eff = temp*factor
-  & x_ini(2),         & ! initial x1 and x2 positions for mode=initial
-  & y_ini(2),         & ! initial y1 and y2 positions for mode=initial
-  & z_ini(2),         & ! initial z1 and z2 positions for mode=initial
-  & dt,               & ! timestep
-  & ratio,            & ! delta parameter in equation
-  & ratio_ctrl          ! delta parameter in equation !! AKASHI
-
-  character(256), save :: &
-  & mode,          &  ! initial mode 
-  & &                 ! 'initial':delta function
-  & &                 ! 'load'   :read from file
-  & fin,           &  ! walker input filename
-  & fout              ! walker output filename
-
-  logical, save :: &
-  & Vswitch , Dist_switch, Debag          ! on or off V, saving of distribution and debagging info
-
-  integer, allocatable, save :: &
-  & itype(:)          ! index of atom types
-
-  real(8), allocatable, save :: &
-  & x_pos(:,:), &
-  & y_pos(:,:), &
-  & z_pos(:,:)
-
-end module bistable1d_val
-
 module routines
   implicit none
   include 'mpif.h'
@@ -68,7 +26,8 @@ module routines
    end subroutine initmpi
 
    subroutine init_lmp(restart)
-   use bistable1d_val, only : Nwalker, Natoms, Nregions, Ncycles,itype, x_pos, y_pos, z_pos
+   use bistable1d_val, only : Nwalker, Natoms, Nregions, Ncycles,itype, x_pos, y_pos, z_pos, &
+ &                            a_orig, a_vec, bounds
    use val_mpi, only : ierr, myrank, nprocs
    use val_mpi_lmp, only : lammps, comm_lammps, ptr
 
@@ -80,8 +39,9 @@ module routines
    character(len=256), parameter :: fin = "in.case"
 
    real(8), parameter :: eunit= 1.0d0
-   real(8), parameter :: dunit= 3.4d0
-   real(8), parameter :: dcut = 20.0d0
+   real(8), parameter :: dunit= 1.0d0
+   !real(8), parameter :: dunit= 3.4d0
+   real(8), parameter :: dcut = 6.0d0
    real(8), parameter :: dcut2 = dcut*2d0
    !integer, parameter :: MAX_REGION = 16384 !! 
    integer, parameter :: MAX_REGION = 1 !! 
@@ -122,10 +82,14 @@ module routines
     write(fp,*)""
     write(fp,'(i10, a6)')(Natoms*Nregions), "atoms"
     write(fp,'(i10, a11)') maxval(itype(:)), "atom types"
-    write(fp,'(2f16.6, a8)') xmin, xmin+dcut2*Nregions, "xlo xhi"   
-    write(fp,'(2f16.6, a8)') ymin, ymin+dcut2, "ylo yhi"
-    write(fp,'(2f16.6, a8)') zmin, zmin+dcut2, "zlo zhi"
-    write(fp,'(3f16.6, a10)') 0.0,0.0,0.0, "xy xz yz"
+    write(fp,'(2f16.6, a8)') a_orig(1),a_orig(1)+a_vec(1,1), "xlo xhi"   
+    write(fp,'(2f16.6, a8)') a_orig(2),a_orig(2)+a_vec(2,2), "ylo yhi"
+    write(fp,'(2f16.6, a8)') a_orig(3),a_orig(3)+a_vec(3,3), "zlo zhi"
+    write(fp,'(3f16.6, a10)') a_vec(2,1),a_vec(3,1),a_vec(3,2), "xy xz yz"
+!    write(fp,'(2f16.6, a8)') xmin, xmin+dcut2*Nregions, "xlo xhi"   
+!    write(fp,'(2f16.6, a8)') ymin, ymin+dcut2, "ylo yhi"
+!    write(fp,'(2f16.6, a8)') zmin, zmin+dcut2, "zlo zhi"
+!    write(fp,'(3f16.6, a10)') 0.0,0.0,0.0, "xy xz yz"
     write(fp,*)""
 
     write(fp,*)"Masses"
@@ -146,7 +110,6 @@ module routines
     ENDDO
     close(fp)
 
-
    ENDIF
    !!/Generate data.case file
 
@@ -161,7 +124,8 @@ module routines
     open(unit=fp,file=fin, status="unknown")
 
     write(fp,*)"units          lj"
-    write(fp,*)"boundary    f f f"
+    write(fp,'(a9,3x,a1,1x,a1,1x,a1)')"boundary", bounds(1),bounds(2),bounds(3)
+!    write(fp,*)"boundary    f f f"
     write(fp,*)"atom_style  atomic"
     write(fp,*)"atom_modify  map array"
     write(fp,*)""
@@ -169,20 +133,24 @@ module routines
     write(fp,*)""
     write(fp,*)"pair_style  lj/cut", dcut
     write(fp,*)""
-    write(fp,'(a10, 2a6, 3f9.4)')"pair_coeff", "*", "*", eunit, dunit, dcut
+    write(fp,'(a10, 2a6, 3f9.4)')"pair_coeff", "*", "*", eunit, dunit
+!    write(fp,'(a10, 2a6, 3f9.4)')"pair_coeff", "*", "*", eunit, dunit, dcut
 !    write(fp,'(a10, 2a6, a15, a6)')"pair_coeff", "*", "*", "CH.airebo", "C H"
-    DO iw = 1, Nregions
-     write(fp,'(a7, a7, a7, 6f16.8)')"region",trim(id_re(iw)),&
-&                               "block",xmin+dcut2*(iw-1), xmin+dcut2*iw, &
-&                               ymin, ymin+dcut2, zmin, zmin+dcut2     
-    ENDDO
+!    DO iw = 1, Nregions
+!     write(fp,'(a7, a7, a7, 6f16.8)')"region",trim(id_re(iw)),&
+!&                               "block",xmin+dcut2*(iw-1), xmin+dcut2*iw, &
+!&                               ymin, ymin+dcut2, zmin, zmin+dcut2     
+!    ENDDO
     
     write(fp,*)""
     write(fp,*)"neighbor      0.3  bin"
     write(fp,*)"compute       peatom all pe/atom"
  
+!    DO iw = 1, Nregions
+!     write(fp,'(a10, a7, a22, a7, a20)')"compute",trim(id_pe(iw)),"all  reduce/region", trim(id_re(iw)) , "sum c_peatom"
+!    ENDDO
     DO iw = 1, Nregions
-     write(fp,'(a10, a7, a22, a7, a20)')"compute",trim(id_pe(iw)),"all  reduce/region", trim(id_re(iw)) , "sum c_peatom"
+     write(fp,'(a10, a7, a30)')"compute",trim(id_pe(iw)),"all  reduce sum c_peatom"
     ENDDO
     write(fp,*)"fix 1 all nve"
     write(fp,*)"log none"
@@ -192,7 +160,7 @@ module routines
    ENDIF
    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
    !!/Generate lammps in file
-
+   !stop
 
    !! MPI split for lammps
    lammps = myrank
@@ -246,11 +214,18 @@ module routines
   !-----------
    subroutine stdin()
    use bistable1d_val, only : Nstep, Nwalker, Natoms, temp, factor,steptowrite,x_ini, y_ini, z_ini, dt, ratio, &
-  &                           mode, fin, fout,Vswitch, Dist_switch,Debag 
+  &                           mode, fin, fout,Vswitch, Dist_switch,Debag,                                      &
+  &                           a_orig, a_vec, b_vec, bounds,                                                    &
+  &                           xlo, xhi, ylo, yhi, zlo, zhi, xy, xz, yz
 
    use val_mpi, only: ierr, myrank, nprocs
+
+   real(8) :: x_orig, y_orig, z_orig
+   real(8) :: a_vec1(3), a_vec2(3), a_vec3(3)
    namelist /input/ Nstep, Nwalker, Natoms, temp, factor,steptowrite,x_ini, y_ini, z_ini, &
-  &                 dt, ratio, mode, fin, fout, Vswitch, Dist_switch,Debag 
+  &                 dt, ratio, mode, fin, fout, Vswitch, Dist_switch,Debag,               &
+  &                 x_orig, y_orig, z_orig, a_vec1, a_vec2, a_vec3, bounds
+  
 
    IF(myrank.eq.0)THEN
     open(unit=10,file="param_3N.in",status="unknown")
@@ -266,6 +241,43 @@ module routines
 !   write(*,*)"x_ini=",x_ini(:,Natoms)
 !   write(*,*)"y_ini=",y_ini(:,Natoms)
 !   write(*,*)"z_ini=",z_ini(:,Natoms)a
+
+    ! origin of the space
+    a_orig(1) = x_orig
+    a_orig(2) = y_orig
+    a_orig(3) = z_orig
+    write(*,*)"a_orig",a_orig(:)
+    ! calculate reciprocal lattice vectors so that a_i*b_j=\delta_ij
+    a_vec(1,:) = a_vec1(:)
+    a_vec(2,:) = a_vec2(:)
+    a_vec(3,:) = a_vec3(:)
+    write(*,*)"a_vec1",a_vec(1,:)
+    write(*,*)"a_vec2",a_vec(2,:)
+    write(*,*)"a_vec3",a_vec(3,:)
+    call recvec(a_vec, b_vec)
+    write(*,*)"b_vec1",b_vec(1,:)
+    write(*,*)"b_vec2",b_vec(2,:)
+    write(*,*)"b_vec3",b_vec(3,:)
+    
+    !/calculate reciprocal lattice vectors so that a_i*b_j=\delta_ij
+    ! define xlo, etc.
+    ! NOTE!! only a1=(xx, 0, 0), a2=(xy, yy, 0), a3=(xz, yz, zz) is accepted
+    ! according to the LAMMPS format
+    xlo = a_orig(1)
+    xhi = a_orig(1) + a_vec(1,1)
+    ylo = a_orig(2)
+    yhi = a_orig(2) + a_vec(2,2)
+    zlo = a_orig(3)
+    zhi = a_orig(3) + a_vec(3,3)
+     xy = a_vec(2,1)
+     xz = a_vec(3,1)
+     yz = a_vec(3,2)
+    !/define xlo, etc.
+    ! check boundary condition
+    write(*,*)"bounds"," ", bounds(1)," ", bounds(2)," ", bounds(3)
+    !stop
+    !/check boundary condition
+
    ENDIF
    call MPI_BCAST(Nstep   , 1, MPI_INTEGER4, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(Nwalker , 1, MPI_INTEGER4, 0, MPI_COMM_WORLD, ierr)
@@ -292,7 +304,8 @@ module routines
    subroutine gen_walker()
 
      use mt19937
-     use bistable1d_val, only: Nwalker, Natoms,itype, x_pos, y_pos, z_pos, mode, x_ini, y_ini, z_ini, fin
+     use bistable1d_val, only: Nwalker, Natoms,itype, x_pos, y_pos, z_pos, mode, x_ini, y_ini, z_ini, fin, &
+  &                            x_pos_mod, y_pos_mod, z_pos_mod
      use val_mpi, only: ierr, myrank, nprocs
 
      integer iw,ina
@@ -304,6 +317,12 @@ module routines
      ALLOCATE(x_pos(Nwalker,Natoms))
      ALLOCATE(y_pos(Nwalker,Natoms))
      ALLOCATE(z_pos(Nwalker,Natoms))
+
+     !! array for subroutine lattice
+     ALLOCATE(x_pos_mod(Nwalker,Natoms))
+     ALLOCATE(y_pos_mod(Nwalker,Natoms))
+     ALLOCATE(z_pos_mod(Nwalker,Natoms))
+     !!/array for subroutine lattice
 
      IF(myrank.eq.0)THEN
 
@@ -382,7 +401,7 @@ module routines
   !-----------
    subroutine solve()
 
-   use bistable1d_val, only: Nstep, Nwalker,  Natoms,Nregions,Ncycles, itype,x_pos, y_pos, z_pos, factor, steptowrite, dt, ratio,ratio_ctrl, fout, temp, x_ini, y_ini, z_ini, Vswitch, Dist_switch, Debag
+   use bistable1d_val, only: Nstep, Nwalker,  Natoms,Nregions,Ncycles, itype,x_pos, y_pos, z_pos, factor, steptowrite, dt, ratio,ratio_ctrl, fout, temp, x_ini, y_ini, z_ini, Vswitch, Dist_switch, Debag, xlo, xhi, ylo, yhi, zlo, zhi, xy, xz, yz, bounds
    use val_mpi, only: ierr, myrank, nprocs
    use potentials, only: calc_Udiff
    use mt19937
@@ -417,7 +436,7 @@ module routines
      real(8) :: Vdiff2X(Nwalker,Natoms)
      real(8) :: Vdiff2Y(Nwalker,Natoms)
      real(8) :: Vdiff2Z(Nwalker,Natoms)
-     !! Akashi modified the shape
+     !! Akashi modified the shape aa
      !real(8) :: weight(Nwalker,Natoms)
      real(8) :: weight(Nwalker)
      !!/Akashi modified the shape
@@ -493,9 +512,9 @@ module routines
      real(8) :: temp0
      real(8) :: inv_G
      real(8) :: lc
-     real(8) :: x_min, x_max
-     real(8) :: y_min, y_max
-     real(8) :: z_min, z_max
+     !real(8) :: x_min, x_max
+     !real(8) :: y_min, y_max
+     !real(8) :: z_min, z_max
      real(8) :: maxtimestep
      integer :: istep
      integer :: iw,jw
@@ -544,24 +563,25 @@ module routines
      integer :: ct0, ct1, count_rate, count_max
      integer :: ct2, ct3, ct4, ct5, ct6
 
-      x_min = minval(x_pos(1,1:Natoms))
-      x_max = maxval(x_pos(1,1:Natoms))
 
-      y_min = minval(y_pos(1,1:Natoms))
-      y_max = maxval(y_pos(1,1:Natoms))
+     ! x_min = minval(x_pos(1,1:Natoms))
+     ! x_max = maxval(x_pos(1,1:Natoms))
 
-      z_min = minval(z_pos(1,1:Natoms))
-      z_max = maxval(z_pos(1,1:Natoms))
+     ! y_min = minval(y_pos(1,1:Natoms))
+     ! y_max = maxval(y_pos(1,1:Natoms))
 
-      x_min = x_min - (x_max - x_min)
-      x_max = x_max + (x_max - x_min) / 2.0d0
+     ! z_min = minval(z_pos(1,1:Natoms))
+     ! z_max = maxval(z_pos(1,1:Natoms))
+
+     ! x_min = x_min - (x_max - x_min)
+     ! x_max = x_max + (x_max - x_min) / 2.0d0
 
 
-      y_min = y_min - (y_max - y_min)
-      y_max = y_max + (y_max - y_min) / 2.0d0
+     ! y_min = y_min - (y_max - y_min)
+     ! y_max = y_max + (y_max - y_min) / 2.0d0
 
-      z_min = z_min - (z_max - z_min)
-      z_max = z_max + (z_max - z_min) / 2.0d0
+     ! z_min = z_min - (z_max - z_min)
+     ! z_max = z_max + (z_max - z_min) / 2.0d0
 
 
 
@@ -1302,7 +1322,9 @@ module routines
            write(iw,'(1e20.8e4)')E_atoms(Natoms)
 
           iw=100+myrank
-          call write_positions(Natoms,x_min,x_max,y_min,y_max,z_min,z_max,iw,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
+!          call write_positions(Natoms,x_min,x_max,y_min,y_max,z_min,z_max,iw,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
+          call write_positions(Natoms,xlo,xhi,ylo,yhi,zlo,zhi,xy, xz, yz,bounds,  &
+      &          iw,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
 
          ENDIF ! i_restart.eq.N_restart
 
@@ -1338,7 +1360,9 @@ module routines
         !call write_positions(Natoms,x_min,x_max,y_min,y_max,z_min,z_max,12,istep,atomictype,coorX_max(1:Natoms),coorY_max(1:Natoms),coorZ_max(1:Natoms))
 
         IF(myrank.eq.0)THEN
-         call write_positions(Natoms,x_min,x_max,y_min,y_max,z_min,z_max,12,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
+         call write_positions(Natoms,xlo,xhi,ylo,yhi,zlo,zhi,xy, xz, yz,bounds, &
+    &         12,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
+!         call write_positions(Natoms,x_min,x_max,y_min,y_max,z_min,z_max,12,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
 !         call write_positions(Natoms,x_min,x_max,y_min,y_max,z_min,z_max,15,istep+restart_step,atomictype,x_ave_p(1:Natoms),y_ave_p(1:Natoms),z_ave_p(1:Natoms))
 
 
@@ -1355,10 +1379,10 @@ module routines
 
        ENDIF !steptowrite                        !/calc distribution function
 
-       IF(istep.eq.10)THEN
+       IF(istep.eq.100)THEN
         IF(myrank.eq.0)THEN
          call system_clock(ct6)
-         write(*,*)"sec/10loop=",dble(ct6-ct0)/dble(count_rate)
+         write(*,*)"sec/100loop=",dble(ct6-ct0)/dble(count_rate)
         ENDIF
         stop
        ENDIF
@@ -1741,18 +1765,22 @@ end module routines
 
 
    !------------------------
-   subroutine write_positions(Natoms,x_min,x_max,y_min,y_max,z_min,z_max,n_file,istep,itype,coorX_max,coorY_max,coorZ_max)
+   !subroutine write_positions(Natoms,x_min,x_max,y_min,y_max,z_min,z_max,n_file,istep,itype,coorX_max,coorY_max,coorZ_max)
+   subroutine write_positions(Natoms,xlo,xhi,ylo,yhi,zlo,zhi,xy, xz, yz,bounds, n_file,istep,itype,coorX_max,coorY_max,coorZ_max)
    !------------------------
    !This subroutine write to the file the coordinates of atomic positions in the
    !format of
    !LAMMPS or OVITO  
    ! 
+   use bistable1d_val, only: b_vec
    implicit none
    integer, intent(in) :: Natoms
    integer, intent(in) :: itype(Natoms)
    integer, intent(in) :: n_file,istep
 
-   real(8), intent(in) :: x_min,x_max,y_min,y_max,z_min,z_max
+   real(8), intent(in) :: xlo, xhi, ylo, yhi, zlo, zhi
+   real(8), intent(in) :: xy, xz, yz
+   character(1), intent(in) :: bounds(3)
 
    real(8), intent(in) :: coorX_max(Natoms)
    real(8), intent(in) :: coorY_max(Natoms)
@@ -1762,10 +1790,27 @@ end module routines
    real(8) :: coorY(Natoms)
    real(8) :: coorZ(Natoms)
 
+   real(8) :: coorX_max_tmp(1,Natoms)
+   real(8) :: coorY_max_tmp(1,Natoms)
+   real(8) :: coorZ_max_tmp(1,Natoms)
+   real(8) :: coorX_max_mod(1,Natoms)
+   real(8) :: coorY_max_mod(1,Natoms)
+   real(8) :: coorZ_max_mod(1,Natoms)
 
+   real(8) :: x_min,x_max,y_min,y_max,z_min,z_max
 !   real(8), intent(out) :: rad_minus2(Nwalker,Natoms,Natoms)
 
    integer :: ina
+   character(2) :: bds(3)
+
+    !! 
+   !! Call periodic treatment
+   coorX_max_tmp(1,:) = coorX_max(:)
+   coorY_max_tmp(1,:) = coorY_max(:)
+   coorZ_max_tmp(1,:) = coorZ_max(:)
+   call lattice(1, Natoms, coorX_max_tmp, coorY_max_tmp, coorZ_max_tmp, &
+     &                coorX_max_mod, coorY_max_mod, coorZ_max_mod)
+   !!/Call periodic treatment
 
 ! write atomic coordinates ONLY for FIST  WALKER !!! in the LAMMPS format
 ! !!!!!!!
@@ -1777,34 +1822,90 @@ end module routines
 
     write(n_file,'(i0)')Natoms
 
-    write(n_file,'(A25)')"ITEM: BOX BOUNDS ss ss ss"
+!    write(n_file,'(A25)')"ITEM: BOX BOUNDS ss ss ss"
+    bds(:)="ff"
+    IF(bounds(1).eq."p") bds(1)="pp"
+    IF(bounds(2).eq."p") bds(2)="pp"
+    IF(bounds(3).eq."p") bds(3)="pp"
+    write(n_file,'(A25,3a4)')"ITEM: BOX BOUNDS xy xz yz", bds(1:3)
 
-    write(n_file,'(f0.4," ",f0.4)')x_min,x_max
-    write(n_file,'(f0.4," ",f0.4)')y_min,y_max
-    write(n_file,'(f0.4," ",f0.4)')z_min,z_max
+    !! see LAMMPS manual 8.3.2 "Triclinic simulation boxes"
+    x_min = xlo + dmin1(0d0, xy, xz, xy+xz)
+    x_max = xhi + dmax1(0d0, xy, xz, xy+xz)
+    y_min = ylo + dmin1(0d0, yz)
+    y_max = yhi + dmax1(0d0, yz)
+    z_min = zlo
+    z_max = zhi
+    write(n_file,'(3f14.6)')x_min, x_max, xy
+    write(n_file,'(3f14.6)')y_min, y_max, xz
+    write(n_file,'(3f14.6)')z_min, z_max, yz
+!    write(n_file,'(f0.4," ",f0.4)')x_min,x_max
+!    write(n_file,'(f0.4," ",f0.4)')y_min,y_max
+!    write(n_file,'(f0.4," ",f0.4)')z_min,z_max
 
 !!!! Recalculation of coordinates - for box coordinates  !!!
 
 
 
-     DO ina = 1, Natoms
+    DO ina = 1, Natoms
 
-      coorX(ina) = (coorX_max(ina) - x_min) / (x_max - x_min)
+      coorX(ina) = (coorX_max_mod(1,ina) - xlo)*b_vec(1,1)  &
+ &                +(coorY_max_mod(1,ina) - ylo)*b_vec(1,2)  &
+ &                +(coorZ_max_mod(1,ina) - zlo)*b_vec(1,3)
 
-      coorY(ina) = (coorY_max(ina) - y_min) / (y_max - y_min)
+      coorY(ina) = (coorX_max_mod(1,ina) - xlo)*b_vec(2,1)  &
+ &                +(coorY_max_mod(1,ina) - ylo)*b_vec(2,2)  &
+ &                +(coorZ_max_mod(1,ina) - zlo)*b_vec(2,3)
 
-      coorZ(ina) = (coorZ_max(ina) - z_min) / (z_max - z_min)
+      coorZ(ina) = (coorX_max_mod(1,ina) - xlo)*b_vec(3,1)  &
+ &                +(coorY_max_mod(1,ina) - ylo)*b_vec(3,2)  &
+ &                +(coorZ_max_mod(1,ina) - zlo)*b_vec(3,3)
 
-     ENDDO
+!     coorX(ina) = (coorX_max_mod(1,ina) - x_min) / (x_max - x_min)
+
+!     coorY(ina) = (coorY_max_mod(1,ina) - y_min) / (y_max - y_min)
+
+!     coorZ(ina) = (coorZ_max_mod(1,ina) - z_min) / (z_max - z_min)
+
+    ENDDO
 
     write(n_file,'(A28)')"ITEM: ATOMS id type xs ys zs"
     DO ina = 1, Natoms
 
-      write(n_file,'(i0," ",i0," ",f0.6," ",f0.6," ",f0.6)')ina,itype(ina),coorX(ina),coorY(ina),coorZ(ina)
+      !write(n_file,'(i0," ",i0," ",f0.6," ",f0.6," ",f0.6)')ina,itype(ina),coorX(ina),coorY(ina),coorZ(ina)
+      write(n_file,'(i6,i6,3f14.6)')ina,itype(ina),coorX(ina),coorY(ina),coorZ(ina)
+      !write(n_file,'(i6,i6,3f14.6)')ina,itype(ina),coorX_max_mod(1,ina),coorY_max_mod(1,ina),coorZ_max_mod(1,ina)
+      !write(n_file,'(i6,i6,3f14.6)')ina,itype(ina),coorX_max(ina),coorY_max(ina),coorZ_max(ina)
 
     ENDDO
 
-end subroutine write_positions
+   end subroutine write_positions
+
+   subroutine recvec(a_vec, b_vec)
+   ! calculate the reciprocal vector
+   ! in the normalization a_i *b_j = \delta_ij
+   implicit none
+
+   real(8), intent(in)  :: a_vec(3,3)
+   real(8), intent(out) :: b_vec(3,3)
+
+   real(8) vol
+    vol = a_vec(1,1)*(a_vec(2,2)*a_vec(3,3)-a_vec(2,3)*a_vec(3,2))  &
+     &       +a_vec(1,2)*(a_vec(2,3)*a_vec(3,1)-a_vec(2,1)*a_vec(3,3))  &
+     &       +a_vec(1,3)*(a_vec(2,1)*a_vec(3,2)-a_vec(2,2)*a_vec(3,1))
+    vol = dabs(vol)
+    b_vec(1,1) = a_vec(2,2)*a_vec(3,3)-a_vec(2,3)*a_vec(3,2)
+    b_vec(1,2) = a_vec(2,3)*a_vec(3,1)-a_vec(2,1)*a_vec(3,3)
+    b_vec(1,3) = a_vec(2,1)*a_vec(3,2)-a_vec(2,2)*a_vec(3,1)
+    b_vec(2,1) = a_vec(3,2)*a_vec(1,3)-a_vec(3,3)*a_vec(1,2)
+    b_vec(2,2) = a_vec(3,3)*a_vec(1,1)-a_vec(3,1)*a_vec(1,3)
+    b_vec(2,3) = a_vec(3,1)*a_vec(1,2)-a_vec(3,2)*a_vec(1,1)
+    b_vec(3,1) = a_vec(1,2)*a_vec(2,3)-a_vec(1,3)*a_vec(2,2)
+    b_vec(3,2) = a_vec(1,3)*a_vec(2,1)-a_vec(1,1)*a_vec(2,3)
+    b_vec(3,3) = a_vec(1,1)*a_vec(2,2)-a_vec(1,2)*a_vec(2,1)
+    b_vec(:,:) = b_vec(:,:)/vol
+       
+   end subroutine
 
 program main
   use routines

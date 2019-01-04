@@ -13,6 +13,7 @@
 
         subroutine calc_Udiff0(Nwalker,Natoms,Nregions,Ncycles,x_pos, y_pos, z_pos,  pe)
          use val_mpi_lmp, only : lammps, comm_lammps, ptr
+         use bistable1d_val, only : x_pos_mod, y_pos_mod, z_pos_mod
          integer, intent(in) :: Nwalker
          integer, intent(in) :: Natoms
          integer, intent(in) :: Nregions
@@ -45,6 +46,11 @@
           len_id_pe(iw) = len(trim(id_pe(iw)))
          ENDDO
 
+         !! Call periodic treatment
+         call lattice(Nwalker, Natoms, x_pos, y_pos, z_pos,             &
+     &                x_pos_mod, y_pos_mod, z_pos_mod)
+         !!/Call periodic treatment
+
          DO icy = 1, Ncycles
           
 
@@ -54,13 +60,13 @@
             idx2 = (icy-1)*Nregions + iw
             !write(*,*) "idx, idx2", idx, idx2
             IF(idx2.gt.Nwalker) THEN  !! pudding
-             pos(idx+1) = x_pos(Nwalker,ina) + dcut2*dble(iw-1) !! test
-             pos(idx+2) = y_pos(Nwalker,ina)
-             pos(idx+3) = z_pos(Nwalker,ina)
+             pos(idx+1) = x_pos_mod(Nwalker,ina) + dcut2*dble(iw-1) !! test
+             pos(idx+2) = y_pos_mod(Nwalker,ina)
+             pos(idx+3) = z_pos_mod(Nwalker,ina)
             ELSE
-             pos(idx+1) = x_pos(idx2,ina) + dcut2*dble(iw-1) !! test
-             pos(idx+2) = y_pos(idx2,ina)
-             pos(idx+3) = z_pos(idx2,ina)
+             pos(idx+1) = x_pos_mod(idx2,ina) + dcut2*dble(iw-1) !! test
+             pos(idx+2) = y_pos_mod(idx2,ina)
+             pos(idx+3) = z_pos_mod(idx2,ina)
             ENDIF
            ENDDO
           ENDDO
@@ -85,6 +91,7 @@
         subroutine calc_Udiff0_atom(Nwalker,Natoms,Nregions,Ncycles,    &
      &              x_pos, y_pos, z_pos,  pe_atom)
          use val_mpi_lmp, only : lammps, comm_lammps, ptr
+         use bistable1d_val, only : x_pos_mod, y_pos_mod, z_pos_mod
          integer, intent(in) :: Nwalker
          integer, intent(in) :: Natoms
          integer, intent(in) :: Nregions
@@ -117,6 +124,10 @@
          pe_tmp(:) = 0d0
 
          write(*,*)"id_pe=", id_pe(:)
+         !! Call periodic treatment
+         call lattice(Nwalker, Natoms, x_pos, y_pos, z_pos,             &
+     &                x_pos_mod, y_pos_mod, z_pos_mod)
+         !!/Call periodic treatment
          DO icy = 1, Ncycles
           
 
@@ -126,13 +137,13 @@
             idx2 = (icy-1)*Nregions + iw
             !write(*,*) "idx, idx2", idx, idx2
             IF(idx2.gt.Nwalker) THEN  !! pudding
-             pos(idx+1) = x_pos(Nwalker,ina) + dcut2*dble(iw-1) !! test
-             pos(idx+2) = y_pos(Nwalker,ina)
-             pos(idx+3) = z_pos(Nwalker,ina)
+             pos(idx+1) = x_pos_mod(Nwalker,ina) + dcut2*dble(iw-1) !! test
+             pos(idx+2) = y_pos_mod(Nwalker,ina)
+             pos(idx+3) = z_pos_mod(Nwalker,ina)
             ELSE
-             pos(idx+1) = x_pos(idx2,ina) + dcut2*dble(iw-1) !! test
-             pos(idx+2) = y_pos(idx2,ina)
-             pos(idx+3) = z_pos(idx2,ina)
+             pos(idx+1) = x_pos_mod(idx2,ina) + dcut2*dble(iw-1) !! test
+             pos(idx+2) = y_pos_mod(idx2,ina)
+             pos(idx+3) = z_pos_mod(idx2,ina)
             ENDIF
            ENDDO
           ENDDO
@@ -165,6 +176,7 @@
         subroutine calc_Udiff1(Nwalker,Natoms,Nregions, Ncycles,         &
      &                         x_pos,y_pos,z_pos,dx_pe,dy_pe, dz_pe)
          use val_mpi_lmp, only : lammps, comm_lammps, ptr
+         use bistable1d_val, only : x_pos_mod, y_pos_mod, z_pos_mod
          integer, intent(in) :: Nwalker
          integer, intent(in) :: Natoms
          integer, intent(in) :: Nregions
@@ -213,6 +225,10 @@
           len_id_pe(iw) = len(trim(id_pe(iw)))
          ENDDO
 
+         !! Call periodic treatment
+         call lattice(Nwalker, Natoms, x_pos, y_pos, z_pos,             &
+     &                x_pos_mod, y_pos_mod, z_pos_mod)
+         !!/Call periodic treatment
          DO icy = 1, Ncycles
           
 
@@ -222,13 +238,13 @@
             idx2 = (icy-1)*Nregions + iw
             !write(*,*) "idx, idx2", idx, idx2
             IF(idx2.gt.Nwalker) THEN  !! pudding
-             pos(idx+1) = x_pos(Nwalker,ina) + dcut2*dble(iw-1) !! test
-             pos(idx+2) = y_pos(Nwalker,ina)
-             pos(idx+3) = z_pos(Nwalker,ina)
+             pos(idx+1) = x_pos_mod(Nwalker,ina) + dcut2*dble(iw-1) !! test
+             pos(idx+2) = y_pos_mod(Nwalker,ina)
+             pos(idx+3) = z_pos_mod(Nwalker,ina)
             ELSE
-             pos(idx+1) = x_pos(idx2,ina) + dcut2*dble(iw-1) !! test
-             pos(idx+2) = y_pos(idx2,ina)
-             pos(idx+3) = z_pos(idx2,ina)
+             pos(idx+1) = x_pos_mod(idx2,ina) + dcut2*dble(iw-1) !! test
+             pos(idx+2) = y_pos_mod(idx2,ina)
+             pos(idx+3) = z_pos_mod(idx2,ina)
             ENDIF
            ENDDO
           ENDDO
@@ -333,6 +349,7 @@
         subroutine calc_Udiff12(Nwalker,Natoms,Nregions,Ncycles,&
      &    x_pos,y_pos,z_pos,dx_pe,dy_pe, dz_pe,ddx_pe, ddy_pe, ddz_pe)
          use val_mpi_lmp, only : lammps, comm_lammps, ptr
+         use bistable1d_val, only : x_pos_mod, y_pos_mod, z_pos_mod
          integer, intent(in) :: Nwalker
          integer, intent(in) :: Natoms
          integer, intent(in) :: Nregions
@@ -380,6 +397,10 @@
           len_id_pe(iw) = len(trim(id_pe(iw)))
          ENDDO
 
+         !! Call periodic treatment
+         call lattice(Nwalker, Natoms, x_pos, y_pos, z_pos,             &
+     &                x_pos_mod, y_pos_mod, z_pos_mod)
+         !!/Call periodic treatment
          DO icy = 1, Ncycles
           
 
@@ -389,13 +410,13 @@
             idx2 = (icy-1)*Nregions + iw
             !write(*,*) "idx, idx2", idx, idx2
             IF(idx2.gt.Nwalker) THEN  !! pudding
-             pos(idx+1) = x_pos(Nwalker,ina) + dcut2*dble(iw-1) !! test
-             pos(idx+2) = y_pos(Nwalker,ina)
-             pos(idx+3) = z_pos(Nwalker,ina)
+             pos(idx+1) = x_pos_mod(Nwalker,ina) + dcut2*dble(iw-1) !! test
+             pos(idx+2) = y_pos_mod(Nwalker,ina)
+             pos(idx+3) = z_pos_mod(Nwalker,ina)
             ELSE
-             pos(idx+1) = x_pos(idx2,ina) + dcut2*dble(iw-1) !! test
-             pos(idx+2) = y_pos(idx2,ina)
-             pos(idx+3) = z_pos(idx2,ina)
+             pos(idx+1) = x_pos_mod(idx2,ina) + dcut2*dble(iw-1) !! test
+             pos(idx+2) = y_pos_mod(idx2,ina)
+             pos(idx+3) = z_pos_mod(idx2,ina)
             ENDIF
            ENDDO
           ENDDO

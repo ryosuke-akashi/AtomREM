@@ -35,7 +35,7 @@ void lammps_open_(MPI_Fint *comm, int64_t *ptr)
     /* convert MPI communicator from fortran to c */
     ccomm = MPI_Comm_f2c(*comm);
 
-    /*lammps_open(0,NULL,ccomm,&obj);*/
+//    lammps_open(0,NULL,ccomm,&obj);
 
     char* opt[]={"", "-sc", "none"};
  
