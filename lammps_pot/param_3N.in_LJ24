@@ -1,7 +1,7 @@
 &input
 Nstep = 32000,
 Nwalker = 320,
-Natoms = 54,
+Natoms = 24,
 temp = 0.00001,
 factor = 1000.0,
 steptowrite = 50,
