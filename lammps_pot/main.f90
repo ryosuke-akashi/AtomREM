@@ -557,8 +557,8 @@ module routines
      real(8) :: z_max_pr
      logical :: Com_switch
      !!/mpi process local values
-     character(3)  :: istring
-     character(32) :: f_rank
+     character(6)  :: istring
+     character(64) :: f_rank
 
      !! mpi shared values with pudding
      real(8) :: x_pos_tmp2(Nwalker*nprocs, Natoms)
