@@ -725,16 +725,16 @@ module routines
 ! To write all walkers for each processor (one walker for one processor)
 
         iw = myrank+100000
-        write (istring, '(i3)') iw
+        write (istring, '(i6)') iw
 
         f_rank = "coordinates_rank_"//istring//".lammpstrj"
 
-        open(unit=iw, file="COORDINATES/"//f_rank, status="unknown")
+        open(unit=iw, file=f_rank, status="unknown")
 
         iw = myrank+200000
         f_rank = "E_atoms_"//istring//".dat"
 
-        open(unit=iw, file="ENERGY/"//f_rank, status="unknown")
+        open(unit=iw, file=f_rank, status="unknown")
 
         Nstep = Nstep * N_restart
 
