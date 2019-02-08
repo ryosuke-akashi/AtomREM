@@ -1448,10 +1448,6 @@ module routines
 
           iw=100000+myrank
 !          call write_positions(Natoms,x_min,x_max,y_min,y_max,z_min,z_max,iw,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
-          IF((i_restart.eq.N_restart) .and.(myrank.eq.1))THEN
-           write(*,*)"myrank, xlo, xhi",myrank,xlo, xhi
-           write(*,*)"myrank,x_ave_q",myrank,x_ave_q(:)
-          ENDIF
           call write_positions(Natoms,xlo,xhi,ylo,yhi,zlo,zhi,xy, xz, yz,bounds,  &
       &          iw,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
 
@@ -1950,10 +1946,6 @@ end module routines
    coorZ_max_tmp(1,:) = coorZ_max(:)
    call lattice(1, Natoms, coorX_max_tmp, coorY_max_tmp, coorZ_max_tmp, &
      &                coorX_max_mod, coorY_max_mod, coorZ_max_mod)
-   IF(myrank.eq.1)THEN
-    write(*,*)"myrank, coorX_max_mod",myrank,coorX_max_mod(1,:)
-    write(*,*)"myrank, coorX_max_tmp",myrank,coorX_max_tmp(1,:)
-   ENDIF
    !!/Call periodic treatment
 
 ! write atomic coordinates ONLY for FIST  WALKER !!! in the LAMMPS format
