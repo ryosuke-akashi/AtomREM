@@ -130,7 +130,9 @@
          write(*,*)"id_pe=", id_pe(:)
          !! Call periodic treatment
          call lattice(Nwalker, Natoms, x_pos, y_pos, z_pos,             &
-     &                x_pos_mod, y_pos_mod, z_pos_mod)
+     &                x_pos_mod(1:Nwalker, 1:Natoms),                    &
+     &                y_pos_mod(1:Nwalker, 1:Natoms),       &
+     &                z_pos_mod(1:Nwalker, 1:Natoms))
          !!/Call periodic treatment
          DO icy = 1, Ncycles
           
@@ -231,7 +233,9 @@
 
          !! Call periodic treatment
          call lattice(Nwalker, Natoms, x_pos, y_pos, z_pos,             &
-     &                x_pos_mod, y_pos_mod, z_pos_mod)
+     &                x_pos_mod(1:Nwalker, 1:Natoms),                    &
+     &                y_pos_mod(1:Nwalker, 1:Natoms),       &
+     &                z_pos_mod(1:Nwalker, 1:Natoms))
          !!/Call periodic treatment
          DO icy = 1, Ncycles
           
@@ -403,7 +407,9 @@
 
          !! Call periodic treatment
          call lattice(Nwalker, Natoms, x_pos, y_pos, z_pos,             &
-     &                x_pos_mod, y_pos_mod, z_pos_mod)
+     &                x_pos_mod(1:Nwalker, 1:Natoms),                    &
+     &                y_pos_mod(1:Nwalker, 1:Natoms),       &
+     &                z_pos_mod(1:Nwalker, 1:Natoms))
          !!/Call periodic treatment
          DO icy = 1, Ncycles
           

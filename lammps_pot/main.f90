@@ -41,7 +41,8 @@ module routines
    real(8), parameter :: eunit= 1.0d0
    real(8), parameter :: dunit= 1.0d0
    !real(8), parameter :: dunit= 3.4d0
-   real(8), parameter :: dcut = 6.0d0
+   real(8), parameter :: dcut = 2.0d0
+   !real(8), parameter :: dcut = 6.0d0
    real(8), parameter :: dcut2 = dcut*2d0
    !integer, parameter :: MAX_REGION = 16384 !! 
    integer, parameter :: MAX_REGION = 1 !! 
@@ -298,6 +299,18 @@ module routines
    call MPI_BCAST(Vswitch , 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(Dist_switch , 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(Debag , 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(xlo , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(xhi , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(ylo , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(yhi , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(zlo , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(zhi , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(xy , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(xz , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(yz , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(bounds , 3, MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(a_vec , 9, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(b_vec , 9, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
    return
 100 write(*,*) "ERROR: reading namelist file"
    stop
@@ -669,7 +682,7 @@ module routines
 
      ! ITERATION FOR SEVERAL simulation with PULL OUT walkers at first steps ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      N_restart = 10
+      N_restart = 2
       restart_step = 0   ! initial number of step
 !      B_coeff = Nstep / N_restart
 
@@ -1435,6 +1448,10 @@ module routines
 
           iw=100000+myrank
 !          call write_positions(Natoms,x_min,x_max,y_min,y_max,z_min,z_max,iw,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
+          IF((i_restart.eq.N_restart) .and.(myrank.eq.1))THEN
+           write(*,*)"myrank, xlo, xhi",myrank,xlo, xhi
+           write(*,*)"myrank,x_ave_q",myrank,x_ave_q(:)
+          ENDIF
           call write_positions(Natoms,xlo,xhi,ylo,yhi,zlo,zhi,xy, xz, yz,bounds,  &
       &          iw,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
 
@@ -1895,6 +1912,7 @@ end module routines
    !LAMMPS or OVITO  
    ! 
    use bistable1d_val, only: b_vec
+   use val_mpi, only:  myrank
    implicit none
    integer, intent(in) :: Natoms
    integer, intent(in) :: itype(Natoms)
@@ -1932,6 +1950,10 @@ end module routines
    coorZ_max_tmp(1,:) = coorZ_max(:)
    call lattice(1, Natoms, coorX_max_tmp, coorY_max_tmp, coorZ_max_tmp, &
      &                coorX_max_mod, coorY_max_mod, coorZ_max_mod)
+   IF(myrank.eq.1)THEN
+    write(*,*)"myrank, coorX_max_mod",myrank,coorX_max_mod(1,:)
+    write(*,*)"myrank, coorX_max_tmp",myrank,coorX_max_tmp(1,:)
+   ENDIF
    !!/Call periodic treatment
 
 ! write atomic coordinates ONLY for FIST  WALKER !!! in the LAMMPS format
