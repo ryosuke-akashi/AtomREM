@@ -127,7 +127,7 @@
 
          pe_tmp(:) = 0d0
 
-         write(*,*)"id_pe=", id_pe(:)
+         ! write(*,*)"id_pe=", id_pe(:)
          !! Call periodic treatment
          call lattice(Nwalker, Natoms, x_pos, y_pos, z_pos,             &
      &                x_pos_mod(1:Nwalker, 1:Natoms),                    &

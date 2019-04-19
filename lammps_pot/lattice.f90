@@ -47,14 +47,20 @@
 
        IF(bounds(1).eq."p")THEN
         n1(1:Nwalker, 1:Natoms) = dble(floor(n1(1:Nwalker, 1:Natoms)))
+       ELSE
+        n1(1:Nwalker, 1:Natoms) = 0d0
        ENDIF
 
        IF(bounds(2).eq."p")THEN
         n2(1:Nwalker, 1:Natoms) = dble(floor(n2(1:Nwalker, 1:Natoms)))
+       ELSE
+        n2(1:Nwalker, 1:Natoms) = 0d0
        ENDIF
 
        IF(bounds(2).eq."p")THEN
         n3(1:Nwalker, 1:Natoms) = dble(floor(n3(1:Nwalker, 1:Natoms)))
+       ELSE
+        n3(1:Nwalker, 1:Natoms) = 0d0
        ENDIF
 
 

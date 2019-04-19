@@ -1,33 +1,24 @@
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!                                                                                                                       !
-!        COPY RIGHT:    GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007                                              !
-!                                                                                                                       !
-!        AUTHORS:       Yuri NAGORNOV  &  RYOSUKE AKSHI                                                                 !
-!                       University of Tokyo, Department of Physics                                                      !
-!                                                                                                                       !
-!        This research was supported by MEXT as Exploratory Challenge on Post-K                                         !
-!        computer (Frontiers of Basic Science: Challenging the Limits).                                                 !
-!        Project ID:    hp160257, hp170244, hp180184                                                                    !
-!        "POST-K PROJECT"                                                                                               !
-!                                                                                                                       !
-!                                                                                                                       !
-!        There is a _THEORY_ of method:                                                                                 !
-!                  J. Phys. Soc. Jpn. 87, 063801 (2018) - https://journals.jps.jp/doi/abs/10.7566/JPSJ.87.063801        !
-!        There is an _ALGORITHM_ of method and examples of simulations:                                                 !
-!                  https://arxiv.org/abs/1812.06581                                                                     !
-!                                                                                                                       !
-!        This code has three modes of work:                                                                             !
-!                       1 - Initialization - seekeng the initial positions (initialization mode),                       !
-!                       2 - Reaction       - simulation under biasing potential (reaction path mode),                   !
-!                       3 - Langevin       - simulation of Langevin mechanics (relaxation mode)                         !
-!                                                                                                                       !
-!                                                                                                                       !
-!        The log scale for calculation of P and Q functions is used to avoid the overflow problem                       !
-!                                                                                                                       !      
-!        The reaction path is drawn by saving of maxima of Q distribution, in other words                               ! 
-!        the reaction path is the average atomic coordinates and atomic energies.                                       !
-!                                                                                                                       !
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+!        COPY RIGHT: GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
+!
+!        AUTHORS:   Yuri NAGORNOV  &  RYOSUKE AKSHI
+!        University of Tokyo, Department of Physics 
+!
+!        This research was supported by MEXT as Exploratory Challenge on Post-K
+!        computer (Frontiers of Basic Science: Challenging the Limits).
+!        Project ID:hp160257, hp170244, hp180184        
+!        "POST-K PROJECT" 
+!
+!
+!        THEORY: https://arxiv.org/abs/1812.06581        
+!
+!        THIS IS CODE TO FIND INITIAL POSITIONS FOR Weighted Langevin mechanics
+!        to seek the reaction pathways. 
+!
+!        The log scale for calculation of P and Q functions is used !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!        The reaction path is drawn by saving of maxima of Q distribution
+!        With reaction path the atomic coordinates also are saved  
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 module routines
   implicit none
@@ -58,11 +49,11 @@ module routines
    integer :: n
    character(len=256), parameter :: fin = "in.case"
 
-   real(8), parameter :: eunit=  1.671d0 ! 10^-14 erg instead 1.0d0
-   !real(8), parameter :: dunit= 1.0d0
-   real(8), parameter :: dunit= 3.4d0
-   !real(8), parameter :: dcut = 2.0d0
-   real(8), parameter :: dcut = 8.0d0
+   real(8), parameter :: eunit= 1.0d0
+   real(8), parameter :: dunit= 1.0d0
+   !real(8), parameter :: dunit= 3.4d0
+!   real(8), parameter :: dcut = 6.0d0
+   real(8), parameter :: dcut = 2.0d0
    real(8), parameter :: dcut2 = dcut*2d0
    !integer, parameter :: MAX_REGION = 16384 !! 
    integer, parameter :: MAX_REGION = 1 !! 
@@ -178,15 +169,13 @@ module routines
    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
    !!/Generate lammps in file
 
-   
+
    !! MPI split for lammps
    lammps = myrank
    call MPI_COMM_SPLIT(MPI_COMM_WORLD, lammps, 0, comm_lammps, ierr)
-   
-   
    call lammps_open(comm_lammps,ptr)
    !!/MPI split for lammps
-   
+
    !! Open LAMMPS initial files
    open(unit=fp, file=fin, action='read', status='old', iostat=ierr)
    n = 0
@@ -214,15 +203,11 @@ module routines
    end subroutine init_lmp
 
    subroutine restart_lmp()
-   use val_mpi, only: ierr, myrank, nprocs
 
    call finalize_lmp()
 
-   IF(myrank.eq.0)THEN
-    call system('mv in.case in.case1')
-    call system('mv data.case data.case1')
-   ENDIF
-   call MPI_barrier(MPI_COMM_WORLD,ierr)
+   call system('mv in.case in.case1')
+   call system('mv data.case data.case1')
    call init_lmp(.true.)
 
    end subroutine restart_lmp
@@ -236,17 +221,17 @@ module routines
    end subroutine finalize_lmp
   !-----------
    subroutine stdin()
-   use bistable1d_val, only : Nstep, Nwalker, Natoms, temp, steptowrite, dt, ratio, &
-  &                           mode, fin, fout,  Dist_switch, Debag, Vswitch,        &
-  &                           a_orig, a_vec, b_vec, bounds,                         &
+   use bistable1d_val, only : Nstep, Nwalker, Natoms, temp, factor, steptowrite, dt, ratio, &
+  &                           mode, fin, fout,Vswitch, Dist_switch,Debag,                                      &
+  &                           a_orig, a_vec, b_vec, bounds,                                                    &
   &                           xlo, xhi, ylo, yhi, zlo, zhi, xy, xz, yz
 
    use val_mpi, only: ierr, myrank, nprocs
 
    real(8) :: x_orig, y_orig, z_orig
-   real(8) :: a_vec1(3), a_vec2(3), a_vec3(3)   
-   namelist /input/ Nstep, Nwalker, Natoms, temp, steptowrite,                      &
-  &                 dt, ratio, mode, fin, fout,                                     &
+   real(8) :: a_vec1(3), a_vec2(3), a_vec3(3)
+   namelist /input/ Nstep, Nwalker, Natoms, temp, factor,steptowrite,                     &
+  &                 dt, ratio, mode, fin, fout, Vswitch, Dist_switch,Debag,               &
   &                 x_orig, y_orig, z_orig, a_vec1, a_vec2, a_vec3, bounds
   
 
@@ -255,35 +240,10 @@ module routines
     read(unit=10,nml=input,err=100)
     close(10)
     IF(mod(Nwalker,nprocs).ne.0)THEN
-     write(*,*)"Error: Number of walkers must be multiple of nprocs"
+     write(*,*)"Error: Nstep must be multiple of nprocs"
      stop
     ENDIF
     Nwalker = Nwalker/nprocs
-    
-    ! Define the logical variables for each mode
-
-    Dist_switch = .FALSE.       ! logical variable to construct the distribution, 
-                                ! it takes a lot of hard disk space and memory, 
-                                ! and utilized only for debagging  
-    Debag = .FALSE.             ! the same reason - it's only for debagging process
-
-    mode = trim(mode)
-
-    IF(mode=="Initialization")THEN
-       Vswitch = .FALSE. 
-
-      ELSE IF(mode=="Reaction")THEN
-       Vswitch = .TRUE.
-
-        ELSE IF(mode=="Langevin")THEN
-          Vswitch = .FALSE.
-
-             ELSE
-               write(*,*)"error: mode = invalid"
-               write(*,*)"mode could be Initialization or Reaction or Langevin, but mode = ",mode
-
-    ENDIF
-
     ! origin of the space
     a_orig(1) = x_orig
     a_orig(2) = y_orig
@@ -317,33 +277,22 @@ module routines
     !/define xlo, etc.
     ! check boundary condition
     write(*,*)"bounds"," ", bounds(1)," ", bounds(2)," ", bounds(3)
+    !stop
     !/check boundary condition
-    write(*,*)"mode of simulation = ",mode
-   ENDIF
 
+   ENDIF
    call MPI_BCAST(Nstep   , 1, MPI_INTEGER4, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(Nwalker , 1, MPI_INTEGER4, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(Natoms  , 1, MPI_INTEGER4, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(temp    , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(factor  , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(steptowrite   , 1, MPI_INTEGER4, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(dt      , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(ratio   , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(mode    , 256, MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(mode    , 1, MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(Vswitch , 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(Dist_switch , 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(Debag , 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(xlo , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(xhi , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(ylo , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(yhi , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(zlo , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(zhi , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(xy , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(xz , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(yz , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(bounds , 3, MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(a_vec , 9, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-   call MPI_BCAST(b_vec , 9, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
    return
 100 write(*,*) "ERROR: reading namelist file"
    stop
@@ -376,6 +325,8 @@ module routines
 
      IF(myrank.eq.0)THEN
 
+      IF(mode=="load")THEN
+
        open(unit=10,file=fin, status="unknown")
        rewind(10)
        DO ina=1, Natoms
@@ -386,11 +337,14 @@ module routines
        ENDDO
        close(10)
 
+      ELSE
+       write(*,*)"error: mode = invalid"
+      ENDIF
+
      ENDIF
      call MPI_BCAST(x_pos   , Nwalker*Natoms, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
      call MPI_BCAST(y_pos   , Nwalker*Natoms, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
      call MPI_BCAST(z_pos   , Nwalker*Natoms, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-     call MPI_BCAST(itype   , Natoms, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
    end subroutine gen_walker
   !-----------
@@ -429,7 +383,7 @@ module routines
   !-----------
    subroutine solve()
 
-   use bistable1d_val, only: Nstep, Nwalker,  Natoms,Nregions,Ncycles, itype,x_pos, y_pos, z_pos, steptowrite, dt, mode, ratio,ratio_ctrl, fout, temp, Vswitch, Dist_switch, Debag, xlo, xhi, ylo, yhi, zlo, zhi, xy, xz, yz, bounds
+   use bistable1d_val, only: Nstep, Nwalker,  Natoms,Nregions,Ncycles, itype,x_pos, y_pos, z_pos, factor, steptowrite, dt, ratio,ratio_ctrl, fout, temp, Vswitch, Dist_switch, Debag, xlo, xhi, ylo, yhi, zlo, zhi, xy, xz, yz, bounds
    use val_mpi, only: ierr, myrank, nprocs
    use potentials, only: calc_Udiff
    use mt19937
@@ -441,6 +395,7 @@ module routines
      real(8) :: mom1(Nwalker)
      real(8) :: mom1Natoms(Nwalker,Natoms)
 
+
      real(8) :: UdiffX(Nwalker,Natoms)
      real(8) :: UdiffY(Nwalker,Natoms)
      real(8) :: UdiffZ(Nwalker,Natoms)
@@ -449,9 +404,12 @@ module routines
      real(8) :: Udiff2Y(Nwalker,Natoms)
      real(8) :: Udiff2Z(Nwalker,Natoms)
 
+
      real(8) :: Vdiff0(Nwalker)
 
+
      real(8) :: Vexp(Nwalker)
+
 
      real(8) :: VdiffX(Nwalker,Natoms)
      real(8) :: VdiffY(Nwalker,Natoms)
@@ -461,7 +419,9 @@ module routines
      real(8) :: Vdiff2Y(Nwalker,Natoms)
      real(8) :: Vdiff2Z(Nwalker,Natoms)
 
+
      real(8) :: weight(Nwalker)
+
      real(8) :: F_func(Nwalker)
 
      real(8) :: A_coeffX(Nwalker,Natoms)
@@ -474,6 +434,7 @@ module routines
      integer :: max_d(3,Natoms)
      integer :: max_d_corr(3,Natoms)
 
+      
      real(8) :: x_pos_tmp(Nwalker*nprocs, Natoms)
      real(8) :: y_pos_tmp(Nwalker*nprocs, Natoms)
      real(8) :: z_pos_tmp(Nwalker*nprocs, Natoms)
@@ -494,6 +455,7 @@ module routines
      integer, parameter :: Ny=30
      integer, parameter :: Nz=30
 
+
      real(8) :: stepXdist(Nx,Natoms)
      real(8) :: stepYdist(Ny,Natoms)
      real(8) :: stepZdist(Nz,Natoms)
@@ -503,11 +465,12 @@ module routines
 
      real(8) :: Vexp_ave
 
+
      real(8) :: displacement(1:Natoms),x_ini_r(1:Natoms), y_ini_r(1:Natoms), z_ini_r(1:Natoms)
 
      real(8) :: lnweight_min
      real(8) :: B_coeff
-    
+      
      real(8) :: Energy_q
      real(8) :: Energy_p
      real(8) :: E_atoms(Natoms)
@@ -516,21 +479,25 @@ module routines
      real(8) :: forceX(Natoms)
      real(8) :: forceY(Natoms)
      real(8) :: forceZ(Natoms)
-    
+
      real(8) :: V_min
      real(8) :: V_ini
      integer :: Nw_tmp
      integer :: incr
-
+     real(8) :: inv_f
      real(8) :: F_ave
      real(8) :: pr
-     
+      
      real(8) :: pr_accum(Nwalker*nprocs)
-     
+
      real(8) :: rand_p
+     real(8) :: temp0
      real(8) :: inv_G
      real(8) :: lc
 
+
+
+     real(8) :: maxtimestep
      integer :: istep
      integer :: iw,jw
      integer :: ix
@@ -539,6 +506,8 @@ module routines
      integer :: c,ina, i_ratio 
      integer :: i_restart,N_restart,restart_step
      real(8) :: ratio_ini,E_start
+
+
 
      !! mpi process local values
      real(8) :: V_min_pr
@@ -565,8 +534,8 @@ module routines
      real(8) :: z_max_pr
      logical :: Com_switch
      !!/mpi process local values
-     character(6)  :: istring
-     character(64) :: f_rank
+     character(3)  :: istring
+     character(32) :: f_rank
 
      !! mpi shared values with pudding
      real(8) :: x_pos_tmp2(Nwalker*nprocs, Natoms)
@@ -576,164 +545,177 @@ module routines
      integer :: ct0, ct1, count_rate, count_max
      integer :: ct2, ct3, ct4, ct5, ct6
 
-     !!       The part to find initial points with a fix two atoms which have a highest
-     !        energy deviations from equilibrium state 
-     !        to find initial points
-     integer :: istruct,N_struct,UniqueNumber
+
+!!       The part to find initial points with a fix two atoms which have a highest
+!        energy deviations from equilibrium state 
+!        to find initial points
+      integer :: istruct,N_struct,UniqueNumber
      integer :: time_second_stage
 
      real(8) :: Energy_min(Natoms),Energy(Natoms)
      real(8) :: E_struct(Nwalker*nprocs,Natoms),U_write(Nwalker*nprocs),E_pr_struct(Nwalker*nprocs,Natoms),U_write_pr(Nwalker*nprocs)
      real(8) :: x_pos_str(Nwalker*nprocs,Natoms),y_pos_str(Nwalker*nprocs,Natoms),z_pos_str(Nwalker*nprocs,Natoms)
-     integer :: number_struct(Nwalker*nprocs),number_pr_struct(Nwalker*nprocs),time_pr(Nwalker*nprocs)
+     integer :: time(Nwalker*nprocs),number_struct(Nwalker*nprocs),number_pr_struct(Nwalker*nprocs),time_pr(Nwalker*nprocs)
 
-     logical :: check_crossing(Nwalker),check_str(Nwalker*nprocs),check_walker(Nwalker),check_pr_str(Nwalker*nprocs)
+     logical :: check_crossing(Nwalker), check_str(Nwalker*nprocs),check_walker(Nwalker),check_pr_str(Nwalker*nprocs)
 
      real(8), parameter :: dE = 0.01d0
-     real(8), parameter :: E_threshold = -3.92d0
-     real(8), parameter :: E_cut = -3.8d0
+     real(8), parameter :: E_threshold = -7.46d0
+     real(8), parameter :: E_cut = -7.3d0
 
      character(32)  :: f_walker
-     
      !!/to find the initial points !!!!!!!
 
-      ! Initialization for seeking of the start points
+   ! Initialization for seeking of the start points
 
-      n1 = myrank*Nwalker + 1
-      n2 = n1 + Nwalker - 1
+     n1 = myrank*Nwalker + 1
+     n2 = n1 + Nwalker - 1
 
-      IF(mode=="Initialization")THEN
-       U_write_pr(:) = 0.0d0
+     U_write_pr(:) = 0.0d0
 
-       open(unit=48, file="Energies_of_structures.dat",status="unknown")
+     open(unit=48, file="Energies_of_structures.dat",status="unknown")
 
-       !n1 = myrank*Nwalker + 1
-       !n2 = n1 + Nwalker - 1
-       U_write(:) = 0.0d0
-       !time(:) = 0
-       time_pr(:) = 0
-       number_struct(:) = 0
-       x_pos_str(:,:) = 0.0d0
-       y_pos_str(:,:) = 0.0d0
-       z_pos_str(:,:) = 0.0d0
-       E_struct(:,:) = 0.0d0
-       E_pr_struct(:,:) = 0.0d0
-       Energy_min(:) = 0.0d0
-       Energy(:) = 0.0d0
-       time_second_stage = 0
+     n1 = myrank*Nwalker + 1
+     n2 = n1 + Nwalker - 1
+     U_write(:) = 0.0d0
+     time(:) = 0
+     time_pr(:) = 0
+     number_struct(:) = 0
+     x_pos_str(:,:) = 0.0d0
+     y_pos_str(:,:) = 0.0d0
+     z_pos_str(:,:) = 0.0d0
+     E_struct(:,:) = 0.0d0
+     E_pr_struct(:,:) = 0.0d0
+     Energy_min(:) = 0.0d0
+     Energy(:) = 0.0d0
+     time_second_stage = 0
 
-       check_crossing(:) = .FALSE.
-       check_walker(:) = .FALSE.
-       check_str(:) = .FALSE.
-       check_pr_str(:) = .FALSE.
+     check_crossing(:) = .FALSE.
+     check_walker(:) = .FALSE.
+     check_str(:) = .FALSE.
+     check_pr_str(:) = .FALSE.
 
-       ! calc  calc_Udiff0_atom
-       call calc_Udiff(Nwalker,Natoms,Nregions,Ncycles,x_pos(1:Nwalker,1:Natoms),&
-       &y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms),UdiffX(1:Nwalker,1:Natoms))
+     !!!!!!!!!!!!  \   ! Initialization for seeking of start points
 
-       IF (myrank.eq.0) THEN
-        DO ina=1, Natoms
-         Energy_min(ina) = UdiffX(1,ina)
-         write(48,*)"i_atom, Energy_min", ina, Energy_min(ina)
-        ENDDO
-        write(48,*)"Energy_ave",  SUM(Energy_min(1:Natoms))/Natoms
-       ENDIF
+     ! calc  calc_Udiff0_atom
+     call calc_Udiff(Nwalker,Natoms,Nregions,Ncycles,x_pos(1:Nwalker,1:Natoms), &
+     &y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms),UdiffX(1:Nwalker,1:Natoms))
 
-       call MPI_BCAST(Energy_min(1:Natoms), Natoms, MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+     IF (myrank.eq.0) THEN
+     DO ina=1, Natoms
+     Energy_min(ina) = UdiffX(1,ina)
+     write(48,*)"i_atom, Energy_min", ina, Energy_min(ina)
+     ENDDO
 
-       !!!!!!!!!!!!  \   ! Initial ENERGIES FOR GROUND STATE :  find start points
+     write(48,*)"Energy_ave",  SUM(Energy_min(1:Natoms))/Natoms
 
-      ENDIF   ! \ mode=="Initialization"
-      !!!!!!!!!!!!  \   ! Initialization for seeking of start points
- 
+     ENDIF
 
-      IF(nprocs.gt.1)Com_switch = .true.
+     call MPI_BCAST(Energy_min(1:Natoms), Natoms, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
 
-      x_ini_r(1:Natoms) = x_pos(1,1:Natoms)
-      y_ini_r(1:Natoms) = y_pos(1,1:Natoms)
-      z_ini_r(1:Natoms) = z_pos(1,1:Natoms)
+     !!!!!!!!!!!!  \   ! Initial ENERGIES FOR GROUND STATE :  find start points
 
-      i_ratio = 0
+     IF(nprocs.gt.1)Com_switch = .true.
 
-      ! initial delta parameter 
-      ratio_ctrl = ratio + 0.02d0             ! 0.42d0
+     x_ini_r(1:Natoms) = x_pos(1,1:Natoms)
+     y_ini_r(1:Natoms) = y_pos(1,1:Natoms)
+     z_ini_r(1:Natoms) = z_pos(1,1:Natoms)
 
- 200  continue           ! the label to reboot the simulation witha new delta
+     ! label to restart with a new delta = ratio 
 
-      i_ratio = i_ratio +1
- 
-      ratio_ctrl = ratio_ctrl - 0.02d0
 
-      IF (myrank.eq.0) THEN
+     i_ratio = 0
+
+
+
+     ratio_ctrl = 0.42d0
+
+200  continue
+
+     i_ratio = i_ratio +1
+
+     ratio_ctrl = ratio_ctrl - 0.02d0
+
+
+     IF (myrank.eq.0) THEN
        write(*,*)"Change the delta parameter for ... times - i_ratio = ",i_ratio
        write(*,*)"Change the delta parameter - delta = ",ratio_ctrl
-      ENDIF
+     ENDIF
 
-      DO ina=1, Natoms 
+     DO ina=1, Natoms 
        x_pos(1:Nwalker,ina) = x_ini_r(ina)
        y_pos(1:Nwalker,ina) = y_ini_r(ina)
        z_pos(1:Nwalker,ina) = z_ini_r(ina)
-      ENDDO
+     ENDDO
 
-      IF (i_ratio.gt.20) THEN
+
+
+
+
+     IF (i_ratio.gt.20) THEN
        stop
-      ENDIF
+     ENDIF
 
-      !  \initial delta parameter
-     
-      inv_G=0.1d0    ! inverse Gamma parameter in Langevin equation / term
+!  \initial delta parameter
 
-      ratio_ini = ratio_ctrl
 
-      call system_clock(c)
-      c = (c + myrank)*(myrank+1)  ! different seeds for each proc  
 
-      call init_genrand(c)
-      IF(myrank.eq.0) THEN
-       open(unit=11, file=fout, status="unknown")
-       open(unit=12, file="atomic_coord_q.lammpstrj", status="unknown")
 
-       open(unit=17, file="path.dat", status="unknown")
-       open(unit=18, file="E_atoms.dat", status="unknown")
+     maxtimestep = dt * 5.0d3
+     temp0 = temp*1000d0
+     inv_G=0.1d0
+     inv_f=1d0/factor
 
-       open(unit=21, file="log_const.dat",status="unknown")
 
-       IF(mode=="Initialization")THEN
-        ! to save initial points: find start points  
+
+     ratio_ini = ratio_ctrl
+
+
+     call system_clock(c)
+     c = (c + myrank)*(myrank+1)  ! different seeds for each proc  
+
+     call init_genrand(c)
+     IF(myrank.eq.0) THEN
+
+
+     ! to save initial points: find start points  
+
              open(unit=49, file="Structures.lammpstrj", status="unknown")
              open(unit=50, file="Number_struct.dat", status="unknown")
-        !     open(unit=30, file="Before_struct.lammpstrj", status="unknown")
+
+
+!               open(unit=30, file="Before_struct.lammpstrj", status="unknown")
              open(unit=31, file="After_heating_energy.dat", status="unknown")
-       ENDIF  !\ to save initial points: find start points
-       
-
-       write(*,*)"initial ratio is ",ratio_ini
-      ENDIF ! myrank .eq. 0
-
-      ! Define the parameters of simulation 
-
-      IF(mode=="Initialization")THEN
-       Vswitch = .FALSE.
-       N_restart = 2
-
-       ELSE IF(mode=="Reaction")THEN
-        Vswitch = .TRUE.
-        N_restart = 10
-
-         ELSE IF(mode=="Langevin")THEN
-           Vswitch = .FALSE.
-           N_restart = 1
-
-             ELSE
-               write(*,*)"error: mode = invalid"
-               write(*,*)"mode could be Initialization or Reaction or Langevin, but mode = ",mode
-               stop 
-      ENDIF
+!               open(unit=32, file="After_energy.dat", status="unknown")
+     !\ to save initial points: find start points  
 
 
-      ! ITERATION FOR SEVERAL simulation with PULL OUT walkers at first steps ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- 
+
+
+
+             open(unit=11, file=fout, status="unknown")
+             open(unit=12, file="atomic_coord_q.lammpstrj", status="unknown")
+
+        
+
+             open(unit=17, file="path.dat", status="unknown")
+             open(unit=18, file="E_atoms.dat", status="unknown")
+
+
+             open(unit=21, file="log_const.dat",status="unknown")
+
+             write(*,*)"x_pos(0) y_pos(0) z_pos(0)", x_pos(1,:), y_pos(1,:), z_pos(1,:)
+
+             write(*,*)"initial ratio is ",ratio_ini
+     ENDIF ! myrank .eq. 0
+
+     ! ITERATION FOR SEVERAL simulation with PULL OUT walkers at first steps ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!              Make a N_restart = 2: find start points 
+      N_restart = 2
       restart_step = 0   ! initial number of step
+
+
+
       Nstep = floor(dble(Nstep)/dble(N_restart))
 
       IF (myrank.eq.0) THEN
@@ -743,60 +725,28 @@ module routines
 
       DO i_restart =1, N_restart           !!!!!!!!!!!!!    RESTART    !!!!!!!!!!!!!!!
 
-       ! the function of delta parameter could be changed for a constant, for example
-       ! ratio = 0.48d0 - (0.48d0 - ratio_ini) * (N_restart - i_restart+1) / N_restart 
-       ratio = ratio_ini       
 
-       IF (myrank.eq.0) THEN 
+!!       AKASHI
+!        ratio = 0.4d0 - (0.4d0 - ratio_ini) * (N_restart - i_restart) / N_restart 
+       ratio = 0.4d0 - (0.4d0 - ratio_ini) * (N_restart - i_restart+1) / N_restart 
+!!/      AKASHI
+
+      IF (myrank.eq.0) THEN 
         write(*,*)"i_restart = ",i_restart
         write(*,*)"ratio = ",ratio
-       ENDIF
+      ENDIF
 
-       ! FOR RELAXATION - LAST CIRCLE
-       IF ((i_restart .eq. N_restart) .AND. (mode.NE."Initialization")) THEN
+      IF (i_restart .eq. (N_restart-1)) THEN
 
-        call restart_lmp()
-
-        Vswitch = .false.
-        Nwalker = 1                     ! This time is for RELAXATION !!! 
-        Com_switch = .false.            ! This time is for RELAXATION !!! 
-
-        ! To write the positions of the saddle point
-        IF((myrank.eq.0) .AND. (mode.EQ."Reaction")) THEN
-         open(unit=50, file="saddle.dat", status="unknown")
-
-         DO ina=1, Natoms
-          write(50,'(3f16.8)')x_ave_q(ina), y_ave_q(ina), z_ave_q(ina)
-         ENDDO
-         close(50)
-
-        ENDIF 
-
-        ! To write all walkers for each processor (not more than 50) (one walker for one processor)
-
-         IF ((myrank.lt.50) .AND. (mode.NE."Initialization")) THEN
-
-          iw = myrank+100000
-          write (istring, '(i6)') iw
-
-          f_rank = "coordinates_rank_"//istring//".lammpstrj"
-
-          open(unit=iw, file=f_rank, status="unknown")
-
-          iw = myrank+200000
-          f_rank = "E_atoms_"//istring//".dat"
-
-          open(unit=iw, file=f_rank, status="unknown")
-
-          Nstep = Nstep * N_restart
-         ENDIF
-
-       ENDIF      ! \(i_restart .eq. N_restart) .AND. (mode.NE."Initialization")
+        Nstep = Nstep * 2
+      ENDIF
 
 
-       ! FOR RELAXATION - LAST CIRCLE: find start points  
- 
-       IF ((i_restart .eq. N_restart) .AND. (mode.eq."Initialization")) THEN
+
+
+! FOR RELAXATION - LAST CIRCLE: find start points  
+
+     IF (i_restart .eq. N_restart) THEN
 
         Vswitch = .false.
         Com_switch = .false.            ! This time is for RELAXATION !!! 
@@ -822,8 +772,9 @@ module routines
 
         DO iw=1, Nwalker
 
-             IF ((Vdiff0(iw) < E_cut+0.5d-1).AND.(Vdiff0(iw) > E_cut - 0.5d-1)) THEN
-             !  IF (Vdiff0(iw) > E_cut) THEN
+!              IF ((Vdiff0(iw) < E_cut+0.5d-1).AND.(Vdiff0(iw) > E_cut - 0.5d-1)) THEN
+             IF (Vdiff0(iw) > E_cut) THEN
+
                     check_walker(iw) = .TRUE.  ! we mark this walker as a potential candidate 
              ENDIF
         ENDDO
@@ -840,52 +791,41 @@ module routines
 
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
         IF (myrank.eq.0) THEN
-            ! write(48,*)"Calculate E_cut"
+             write(48,*)"Calculate E_cut"
 
             ! save energies of all walkers after heating
             DO iw=1, Nwalker*nprocs
+
                write(31,'(1i6,1e20.8e4)')iw,U_write(iw)
+
             ENDDO
 
             ! save the energies of choosen walkers
+
             DO iw=1, Nwalker
-              IF (check_walker(iw)) THEN
+!              IF (check_walker(iw)) THEN
                     write(48,*)iw,check_walker(iw),Vdiff0(iw)
-              ENDIF
+!              ENDIF
             ENDDO
 
         ENDIF ! \myrank=0
         time_second_stage = istep
 
+
      ENDIF      ! \(i_restart .eq. N_restart)
 
-     !    \FOR RELAXATION - LAST CIRCLE: find start points 
+!    \FOR RELAXATION - LAST CIRCLE: find start points  
+
+     iw = myrank+200
+     write (istring, '(i3)') iw
+     f_rank = "E_atoms_"//istring//".dat"
+
+     open(unit=iw, file="ENERGY/"//f_rank, status="unknown")
 
 
+     ! Initialization for simulation
 
-
-
-       !      PULL OUT of walkers for second or more stage of restarting iteration
-
-
-       IF ((i_restart .gt. 1) .AND. (mode=="Reaction")) THEN
-
-        DO ina=1, Natoms
-         x_pos(1,ina) = x_ave_q(ina)
-         y_pos(1,ina) = y_ave_q(ina)
-         z_pos(1,ina) = z_ave_q(ina)
-
-         x_pos(2:Nwalker,ina) = x_pos(1,ina)
-         y_pos(2:Nwalker,ina) = y_pos(1,ina)
-         z_pos(2:Nwalker,ina) = z_pos(1,ina)
-        ENDDO
-
-       ENDIF
-
-
-      ! Initialization for simulation circle 
-
-      
+  
 
 
        id_walker(:)= 0  
@@ -893,16 +833,16 @@ module routines
        UdiffY(:,:)=0d0
        UdiffZ(:,:)=0d0
 
-       
+
        Vdiff0(:)=0d0
-       !Vdiff0X(:,:)=0d0
-       !Vdiff0Y(:,:)=0d0
-       !Vdiff0Z(:,:)=0d0
+
+
+
 
        Vexp(:)=0d0
        Vexp_ave=0d0
-       !Vexp(:,:)=0d0
-       !Vexp_ave(:)=0d0
+
+
        V_ini=0d0
 
        F_ave=0d0
@@ -915,8 +855,6 @@ module routines
        Vdiff2Y(:,:)=0d0
        Vdiff2Z(:,:)=0d0
 
-       
-      
        weight(:)=1d0
        F_func(:)=0d0
        mom1(:)=0d0
@@ -924,7 +862,7 @@ module routines
        prob(:)=0d0
        lc=0d0
 
-       
+        
        x_ave_q(:) = 0d0
        y_ave_q(:) = 0d0
        z_ave_q(:) = 0d0
@@ -932,7 +870,7 @@ module routines
        y_ave_p(:) = 0d0
        z_ave_p(:) = 0d0
        sq_force = 0d0
-       
+
        stepXdist(:,:) = 0d0
        stepYdist(:,:) = 0d0
        stepZdist(:,:) = 0d0
@@ -948,228 +886,96 @@ module routines
        !call  calc_rad_m2(Nwalker,Natoms,x_pos(1:Nwalker,1:Natoms),y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms),rad_m2(1:Nwalker,1:Natoms,1:Natoms))
 
        call calc_Udiff(Nwalker,Natoms,Nregions,Ncycles,&
-        &          x_pos(1:Nwalker,1:Natoms),y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms), Vdiff0(1:Nwalker))
+&          x_pos(1:Nwalker,1:Natoms),y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms), Vdiff0(1:Nwalker))
 
        IF (i_restart.eq.1) THEN
 
-        E_start = Vdiff0(1)/Natoms   ! Initial energy of system
+          E_start = Vdiff0(1)/Natoms   ! Initial energy of system
 
-        write(*,*)"Initial Energy = ",E_start
-       
-
-        IF (myrank.eq.1)THEN
-         write(*,*)"x_pos = ",x_pos(1,1:Natoms)
-         write(*,*)"y_pos = ",y_pos(1,1:Natoms)
-         write(*,*)"z_pos = ",z_pos(1,1:Natoms)
-         write(*,*)"Natoms = ",Natoms
-         write(*,*)"Nwalker = ",Nwalker
-         write(*,*)"Vdiff0 = ",Vdiff0(1)
-         write(*,*)"Nregions,Ncycles = ",Nregions,Ncycles
-         
-         ENDIF
        ENDIF
  
 
        Vdiff0(:) = (1d0 - ratio)*Vdiff0(:)
 
        ! prevent overflow problem
-       !V_min = minval(Vdiff0(1:Nwalker))         ! prevent overflow problem 
+
        V_min_pr = minval(Vdiff0(1:Nwalker))         ! prevent overflow problem 
        call MPI_ALLREDUCE(V_min_pr, V_min, 1, MPI_REAL8, & 
-        &                     MPI_MIN, MPI_COMM_WORLD,ierr)
+   &                     MPI_MIN, MPI_COMM_WORLD,ierr)
        Vdiff0(1:Nwalker)=Vdiff0(1:Nwalker) - V_min
+      ! prevent overflow problem
 
-       ! prevent overflow problem
        Vexp(1:Nwalker) = dexp(-1d0 * Vdiff0(1:Nwalker)/temp)
 
 
-
        IF (myrank.eq.0) THEN
-        write(*,*)"INITIALIZATION!!!!!!!!!"
-        write(*,*)"V_min = ",V_min
-        write(*,*)"Temperature of simulation T = ",temp
+          write(*,*)"INITIALIZATION!!!!!!!!!"
+          write(*,*)"V_min = ",V_min
+          write(*,*)"Temperature of simulation T = ",temp
 
-        write(*,*)"Vdiff_0(1) = "
+          write(*,*)"Vdiff_0(1) = "
 
-        write(*,*)Vdiff0(1)+V_min
+          write(*,*)Vdiff0(1)+V_min
 
 
-        write(*,*)"V_exp(1) = "
+          write(*,*)"V_exp(1) = "
 
-        write(*,*)Vexp(1)
+          write(*,*)Vexp(1)
 
 
        ENDIF 
-     
-       weight(:)=1d0
 
+
+       weight(:)=1d0
+      
        call calc_moment1(Vexp(1:Nwalker),Nwalker,weight,mom1(1:Nwalker),  &
-        &               Vexp_ave_pr)
+   &               Vexp_ave_pr)
        call MPI_ALLREDUCE(Vexp_ave_pr, Vexp_ave, 1, MPI_REAL8, & 
-        &                     MPI_SUM, MPI_COMM_WORLD,ierr)
+   &                     MPI_SUM, MPI_COMM_WORLD,ierr)
        Vexp_ave = Vexp_ave/dble(nprocs)
        V_ini=V_min-temp*dlog(Vexp_ave)
 
        IF (myrank.eq.0) THEN
 
-        write(*,*)"V_ini = ",V_ini
+          write(*,*)"V_ini = ",V_ini
 
-        write(*,*)"average values of Vexp = "
-        write(*,*)ina,Vexp_ave
+          write(*,*)"average values of Vexp = "
+          write(*,*)ina,Vexp_ave
        ENDIF
-
-
-     !/END of initialization
 
 
      ! START of ITERATIONS     ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
 
-       B_coeff=sqrt(2d0*temp*inv_G)
+     B_coeff=sqrt(2d0*temp*inv_G)
 
-       Voff = .false.
-       DO istep =1, Nstep
+     Voff = .false.
+     DO istep =1, Nstep
 
-        call system_clock(ct0, count_rate, count_max)
+          call system_clock(ct0, count_rate, count_max)
 
-        weight(:)=1d0
+          weight(:)=1d0
 
-        IF(Vswitch .and. (istep .le. 30) .and. (i_restart .gt. 1)) THEN
-         Voff = .true.
-         Vswitch = .false.
-        ENDIF
-
-        IF(Voff .and. istep.gt.30)THEN !! first 30 steps V is off
-         Voff = .false.
-         Vswitch=.true.
-        ENDIF
-
-        ! birth-death process1
-        !
-        !
-        !! calculate factor P
-
-        IF(Vswitch) THEN
-         call calc_Udiff(Nwalker,Natoms,Nregions,Ncycles,&
-&                       x_pos(1:Nwalker,1:Natoms),y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms),&
-&                    UdiffX(1:Nwalker,1:Natoms),UdiffY(1:Nwalker,1:Natoms),UdiffZ(1:Nwalker,1:Natoms),                                                     &
-&                    Vdiff2X(1:Nwalker,1:Natoms),Vdiff2Y(1:Nwalker,1:Natoms),Vdiff2Z(1:Nwalker,1:Natoms) )
-
-
-         VdiffX(:,:) = (1d0 - ratio)*UdiffX(:,:)
-         VdiffY(:,:) = (1d0 - ratio)*UdiffY(:,:)
-         VdiffZ(:,:) = (1d0 - ratio)*UdiffZ(:,:)
-
-         Vdiff2X(:,:) = (1d0 - ratio)*Vdiff2X(:,:)
-         Vdiff2Y(:,:) = (1d0 - ratio)*Vdiff2Y(:,:)
-         Vdiff2Z(:,:) = (1d0 - ratio)*Vdiff2Z(:,:)
-
-
-         F_func(1:Nwalker) =0d0
-         DO ina=1, Natoms
-          F_func(1:Nwalker) = F_func(1:Nwalker) + & 
-&                          Vdiff2X(1:Nwalker,ina)+1d0/temp*VdiffX(1:Nwalker,ina)*(VdiffX(1:Nwalker,ina)-UdiffX(1:Nwalker,ina)) + &
-&                          Vdiff2Y(1:Nwalker,ina)+1d0/temp*VdiffY(1:Nwalker,ina)*(VdiffY(1:Nwalker,ina)-UdiffY(1:Nwalker,ina)) + &
-&                          Vdiff2Z(1:Nwalker,ina)+1d0/temp*VdiffZ(1:Nwalker,ina)*(VdiffZ(1:Nwalker,ina)-UdiffZ(1:Nwalker,ina))
-         ENDDO
-
-         !call calc_moment1(F_func(1:Nwalker),Nwalker,weight,mom1(1:Nwalker),F_ave)
-         F_ave_pr = maxval(F_func)
-         call MPI_ALLREDUCE(F_ave_pr, F_ave, 1, MPI_REAL8, &
-&                         MPI_MAX, MPI_COMM_WORLD,ierr)
-         mom1(1:Nwalker) = F_func(1:Nwalker) - F_ave
-         prob(1:Nwalker)=exp(0.5d0*dt*inv_G*mom1(1:Nwalker))
-         !prob(1:Nwalker)=exp(1.0d0*dt*inv_G*mom1(1:Nwalker)) !Langevin-->BD-->Langevin
-
-         !!  exactly number-conserving algorithm (2018/09/05)
-         !!! calculated accumulated probability 
-         n1 = myrank*Nwalker + 1      
-         n2 = n1 + Nwalker - 1      
-
-         pr_accum(:) =0d0
-         pr_accum_pr(:) =0d0
-         pr_accum_pr(n1) = prob(1)
-
-         DO iw = 2, Nwalker
-          pr_accum_pr(n1+iw-1) = pr_accum_pr(n1 + iw -2)+prob(iw)
-         ENDDO
-
-         call MPI_ALLREDUCE(pr_accum_pr,pr_accum, Nwalker*nprocs, MPI_REAL8, & 
-   &                     MPI_SUM, MPI_COMM_WORLD,ierr)
-         DO iproc = 2, nprocs
-          npr = (iproc-1)*Nwalker
-          pr_accum((npr+1):(npr+Nwalker)) =                   &
-   &       pr_accum((npr+1):(npr+Nwalker)) + pr_accum(npr)
-         ENDDO
-
-         pr_accum(:) = pr_accum(:)/pr_accum(Nwalker*nprocs)
-
-
-         rand_p=genrand_real3()
-
-         call MPI_BCAST(rand_p, 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
- 
-         iw = 1
-         myincr = 0
-         IF(myrank.gt.0)THEN
-          DO while (iw .le. Nwalker*nprocs)
-           IF( ((dble(myrank*Nwalker)+rand_p )/dble(Nwalker*nprocs)).gt.pr_accum(iw) )THEN
-            iw = iw + 1
-            cycle
-           ELSE
-            myincr = iw -1
-            exit
-           ENDIF
-          ENDDO
-         ENDIF
-
-
-         iw   =  1
-         incr = myincr + 1
-
-         DO while (iw .le. Nwalker)
-          IF( ((dble(iw-1 + myrank*Nwalker) + rand_p )/dble(Nwalker*nprocs)).le.pr_accum(incr) )THEN
-           id_walker(iw) = incr
-           iw = iw + 1
-          ELSE
-           incr = incr + 1
+          IF(Vswitch .and. (istep .le. 30) .and. (i_restart .gt. 1)) THEN
+              Voff = .true.
+              Vswitch = .false.
           ENDIF
-         ENDDO
 
+          IF(Voff .and. istep.gt.30)THEN !! first 30 steps V is off
+              Voff = .false.
+              Vswitch=.true.
+          ENDIF
 
-        !! Pay attention: ALLREDUCE  can be used like (instead) ALLGATHER
+          IF (.FALSE..AND.(i_restart.EQ.2).AND.(myrank.eq.0)) THEN     
 
-         x_pos_tmp(:,:) = 0d0
-         y_pos_tmp(:,:) = 0d0
-         z_pos_tmp(:,:) = 0d0
-         x_pos_tmp2(:,:) = 0d0
-         y_pos_tmp2(:,:) = 0d0
-         z_pos_tmp2(:,:) = 0d0
+                write(*,*)"point_1",istep
 
-         x_pos_tmp(n1:n2, 1:Natoms) = x_pos(1:Nwalker, 1:Natoms)
-         y_pos_tmp(n1:n2, 1:Natoms) = y_pos(1:Nwalker, 1:Natoms)
-         z_pos_tmp(n1:n2, 1:Natoms) = z_pos(1:Nwalker, 1:Natoms)
+          ENDIF
 
-         call MPI_ALLREDUCE(x_pos_tmp,x_pos_tmp2, Nwalker*nprocs*Natoms, MPI_REAL8, & 
-   &                     MPI_SUM, MPI_COMM_WORLD,ierr)
-         call MPI_ALLREDUCE(y_pos_tmp,y_pos_tmp2, Nwalker*nprocs*Natoms, MPI_REAL8, & 
-   &                     MPI_SUM, MPI_COMM_WORLD,ierr)
-         call MPI_ALLREDUCE(z_pos_tmp,z_pos_tmp2, Nwalker*nprocs*Natoms, MPI_REAL8, & 
-   &                     MPI_SUM, MPI_COMM_WORLD,ierr)
-        
-        !!/allreduce can be used like allgather
+ 
+        ! Calc log constant: 2018/10/04 removed as obsolete
+        !/Calc log constant
 
-         DO iw = 1, Nwalker
-          x_pos(iw, 1:Natoms) = x_pos_tmp2(id_walker(iw), 1:Natoms)
-          y_pos(iw, 1:Natoms) = y_pos_tmp2(id_walker(iw), 1:Natoms)
-          z_pos(iw, 1:Natoms) = z_pos_tmp2(id_walker(iw), 1:Natoms)
-         ENDDO
-
-        !! /exactly number-conserving algorithm (2018/09/05)
-        ENDIF ! Vswitch
-        !/birth-death process 1
-
-        ! Langevin step
-        !
+        ! Langevin step 1
         !
         ! generate random noise
         call gen_noise(Nwalker,Natoms,dWX(1:Nwalker,1:Natoms),dWY(1:Nwalker,1:Natoms),dWZ(1:Nwalker,1:Natoms))
@@ -1194,16 +1000,14 @@ module routines
         !!/calculate coefficients
         !
         !! increment
-        x_pos(1:Nwalker,1:Natoms) = x_pos(1:Nwalker,1:Natoms)+A_coeffX(1:Nwalker,1:Natoms)*1.0d0*dt+B_coeff*sqrt(1.0d0*dt)*dWX(1:Nwalker,1:Natoms)
-        y_pos(1:Nwalker,1:Natoms) = y_pos(1:Nwalker,1:Natoms)+A_coeffY(1:Nwalker,1:Natoms)*1.0d0*dt+B_coeff*sqrt(1.0d0*dt)*dWY(1:Nwalker,1:Natoms)
-        z_pos(1:Nwalker,1:Natoms) = z_pos(1:Nwalker,1:Natoms)+A_coeffZ(1:Nwalker,1:Natoms)*1.0d0*dt+B_coeff*sqrt(1.0d0*dt)*dWZ(1:Nwalker,1:Natoms)
+        x_pos(1:Nwalker,1:Natoms) = x_pos(1:Nwalker,1:Natoms)+A_coeffX(1:Nwalker,1:Natoms)*0.5d0*dt+B_coeff*sqrt(0.5d0*dt)*dWX(1:Nwalker,1:Natoms)
+        y_pos(1:Nwalker,1:Natoms) = y_pos(1:Nwalker,1:Natoms)+A_coeffY(1:Nwalker,1:Natoms)*0.5d0*dt+B_coeff*sqrt(0.5d0*dt)*dWY(1:Nwalker,1:Natoms)
+        z_pos(1:Nwalker,1:Natoms) = z_pos(1:Nwalker,1:Natoms)+A_coeffZ(1:Nwalker,1:Natoms)*0.5d0*dt+B_coeff*sqrt(0.5d0*dt)*dWZ(1:Nwalker,1:Natoms)
         !!/increment
         !
         !
-        !/Langevin step 
-
-
-        ! birth-death process2
+        !/Langevin step 1
+        ! birth-death process
         !
         !
         !! calculate factor P
@@ -1233,12 +1037,13 @@ module routines
          ENDDO
 
          !call calc_moment1(F_func(1:Nwalker),Nwalker,weight,mom1(1:Nwalker),F_ave)
-         F_ave_pr = maxval(F_func)
-         call MPI_ALLREDUCE(F_ave_pr, F_ave, 1, MPI_REAL8, &
-   &                     MPI_MAX, MPI_COMM_WORLD,ierr)
-         mom1(1:Nwalker) = F_func(1:Nwalker) - F_ave
-         prob(1:Nwalker)=exp(0.5d0*dt*inv_G*mom1(1:Nwalker))
-         !prob(1:Nwalker)=exp(1.0d0*dt*inv_G*mom1(1:Nwalker)) !Langevin-->BD-->Langevin
+         call calc_moment1(F_func(1:Nwalker),Nwalker,weight,mom1(1:Nwalker),F_ave_pr)
+         call MPI_ALLREDUCE(F_ave_pr, F_ave, 1, MPI_REAL8, & 
+   &                     MPI_SUM, MPI_COMM_WORLD,ierr)
+         F_ave = F_ave/dble(nprocs)
+         mom1(1:Nwalker) = mom1(1:Nwalker) + F_ave_pr - F_ave
+         !prob(1:Nwalker)=exp(0.5d0*dt*inv_G*mom1(1:Nwalker))
+         prob(1:Nwalker)=exp(1.0d0*dt*inv_G*mom1(1:Nwalker)) !Langevin-->BD-->Langevin
 
          !!  exactly number-conserving algorithm (2018/09/05)
          !!! calculated accumulated probability 
@@ -1253,6 +1058,15 @@ module routines
           pr_accum_pr(n1+iw-1) = pr_accum_pr(n1 + iw -2)+prob(iw)
          ENDDO
 
+
+       IF (.FALSE..AND.(i_restart.EQ.2).AND.(myrank.eq.0)) THEN
+
+       write(*,*)"point_2: ",istep
+
+       ENDIF
+
+
+
          call MPI_ALLREDUCE(pr_accum_pr,pr_accum, Nwalker*nprocs, MPI_REAL8, & 
    &                     MPI_SUM, MPI_COMM_WORLD,ierr)
          DO iproc = 2, nprocs
@@ -1262,6 +1076,18 @@ module routines
          ENDDO
 
          pr_accum(:) = pr_accum(:)/pr_accum(Nwalker*nprocs)
+
+        !IF(myrank.eq.0)THEN
+        ! DO iw = 1, Nwalker*nprocs
+        !  write(*,*)"iw, pr_accum", iw, pr_accum(iw), myrank
+        ! ENDDO
+        !ENDIF
+        !call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+        !IF(myrank.eq.1)THEN
+        ! DO iw = 1, Nwalker*nprocs
+        !  write(*,*)"iw, pr_accum", iw, pr_accum(iw), myrank
+        ! ENDDO
+        !ENDIF
 
         !!!/calculated accumulated probability       
 
@@ -1277,26 +1103,32 @@ module routines
             iw = iw + 1
             cycle
            ELSE
-            myincr = iw -1
+            myincr = iw
             exit
            ENDIF
           ENDDO
          ENDIF
 
+!        write(*,*)"proc,myincr",myrank, myincr
          iw   =  1
          incr = myincr + 1
 
          DO while (iw .le. Nwalker)
-          IF( ((dble(iw-1 + myrank*Nwalker) + rand_p )/dble(Nwalker*nprocs)).le.pr_accum(incr) )THEN
+          IF( ((dble(iw-1)+ myrank*Nwalker + rand_p )/dble(Nwalker*nprocs)).le.pr_accum(incr) )THEN
            id_walker(iw) = incr
            iw = iw + 1
           ELSE
            incr = incr + 1
           ENDIF
+
+         !IF(incr .gt. (myrank+1)*Nwalker )THEN
+         ! write(*,*)"error: incremental"
+         ! stop
+         !ENDIF
          ENDDO
+!        write(*,*)"proc, incr", myrank, incr
 
-
-        !! Pay attention: ALLREDUCE  can be used like (instead) ALLGATHER
+        !! allreduce can be used like allgather
 
          x_pos_tmp(:,:) = 0d0
          y_pos_tmp(:,:) = 0d0
@@ -1309,6 +1141,16 @@ module routines
          y_pos_tmp(n1:n2, 1:Natoms) = y_pos(1:Nwalker, 1:Natoms)
          z_pos_tmp(n1:n2, 1:Natoms) = z_pos(1:Nwalker, 1:Natoms)
 
+
+      IF (.FALSE..AND.(i_restart.EQ.2).AND.(myrank.eq.0)) THEN
+
+       write(*,*)"point_3",istep
+       ENDIF
+
+
+
+
+
          call MPI_ALLREDUCE(x_pos_tmp,x_pos_tmp2, Nwalker*nprocs*Natoms, MPI_REAL8, & 
    &                     MPI_SUM, MPI_COMM_WORLD,ierr)
          call MPI_ALLREDUCE(y_pos_tmp,y_pos_tmp2, Nwalker*nprocs*Natoms, MPI_REAL8, & 
@@ -1316,7 +1158,7 @@ module routines
          call MPI_ALLREDUCE(z_pos_tmp,z_pos_tmp2, Nwalker*nprocs*Natoms, MPI_REAL8, & 
    &                     MPI_SUM, MPI_COMM_WORLD,ierr)
         
-        !!/Pay attention: ALLREDUCE  can be used like (instead) ALLGATHER
+        !!/allreduce can be used like allgather
 
          DO iw = 1, Nwalker
           x_pos(iw, 1:Natoms) = x_pos_tmp2(id_walker(iw), 1:Natoms)
@@ -1325,18 +1167,58 @@ module routines
          ENDDO
 
         !! /exactly number-conserving algorithm (2018/09/05)
-       !/birth-death process 2
+       !/birth-death process 1
 
+       !call system_clock(ct3)
+       !write(1001,*)"sec/bd1=",dble(ct3-ct2)/dble(count_rate)
         ENDIF ! Vswitch
 
+        ! Langevin step 2
+        !
+        ! generate random noise
+        call gen_noise(Nwalker,Natoms,dWX(1:Nwalker,1:Natoms),dWY(1:Nwalker,1:Natoms),dWZ(1:Nwalker,1:Natoms))
+
+        !/generate random noise
+
+        ! calculate coefficients
+        call calc_Udiff(Nwalker,Natoms,Nregions,Ncycles,x_pos(1:Nwalker,1:Natoms),y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms),&
+&                     UdiffX(1:Nwalker,1:Natoms),UdiffY(1:Nwalker,1:Natoms),UdiffZ(1:Nwalker,1:Natoms))
+
+        VdiffX(:,:) = 0d0
+        VdiffY(:,:) = 0d0
+        VdiffZ(:,:) = 0d0
+        IF(Vswitch) THEN
+         VdiffX(:,:) = (1d0 - ratio)*UdiffX(:,:)
+         VdiffY(:,:) = (1d0 - ratio)*UdiffY(:,:)
+         VdiffZ(:,:) = (1d0 - ratio)*UdiffZ(:,:)
+        ENDIF
+
+        A_coeffX(1:Nwalker,1:Natoms) = inv_G*(-UdiffX(1:Nwalker,1:Natoms)+2d0*VdiffX(1:Nwalker,1:Natoms))
+        A_coeffY(1:Nwalker,1:Natoms) = inv_G*(-UdiffY(1:Nwalker,1:Natoms)+2d0*VdiffY(1:Nwalker,1:Natoms))
+        A_coeffZ(1:Nwalker,1:Natoms) = inv_G*(-UdiffZ(1:Nwalker,1:Natoms)+2d0*VdiffZ(1:Nwalker,1:Natoms))
+        !!/calculate coefficients
+        !
+        !! increment
+        x_pos(1:Nwalker,1:Natoms) = x_pos(1:Nwalker,1:Natoms)+A_coeffX(1:Nwalker,1:Natoms)*0.5d0*dt+B_coeff*sqrt(0.5d0*dt)*dWX(1:Nwalker,1:Natoms)
+        y_pos(1:Nwalker,1:Natoms) = y_pos(1:Nwalker,1:Natoms)+A_coeffY(1:Nwalker,1:Natoms)*0.5d0*dt+B_coeff*sqrt(0.5d0*dt)*dWY(1:Nwalker,1:Natoms)
+        z_pos(1:Nwalker,1:Natoms) = z_pos(1:Nwalker,1:Natoms)+A_coeffZ(1:Nwalker,1:Natoms)*0.5d0*dt+B_coeff*sqrt(0.5d0*dt)*dWZ(1:Nwalker,1:Natoms)
+        !!/increment
+        !
+        !
+        !/Langevin step 2
+
+
+
+        IF(myrank.eq.0)THEN
+
+        ENDIF
      
-        ! This part in order to save data of simulation    
+                                                    ! calc distribution function
         IF((mod(istep,steptowrite).eq.0).or.(istep.eq.1))THEN
-      
+
          weight(1:Nwalker)=1d0
          lnweight_min=0d0
  
-
          call calc_moment1Natoms(x_pos(1:Nwalker,1:Natoms),Nwalker,Natoms,weight(1:Nwalker),mom1Natoms(1:Nwalker,1:Natoms),x_ave_pr_q(1:Natoms))
          call calc_moment1Natoms(y_pos(1:Nwalker,1:Natoms),Nwalker,Natoms,weight(1:Nwalker),mom1Natoms(1:Nwalker,1:Natoms),y_ave_pr_q(1:Natoms))
          call calc_moment1Natoms(z_pos(1:Nwalker,1:Natoms),Nwalker,Natoms,weight(1:Nwalker),mom1Natoms(1:Nwalker,1:Natoms),z_ave_pr_q(1:Natoms))
@@ -1352,9 +1234,8 @@ module routines
          y_ave_q(:) = y_ave_q(:)/dble(nprocs)
          z_ave_q(:) = z_ave_q(:)/dble(nprocs)
 
-         !!call calc_dist(x_pos(1:Nwalker,1:Natoms),y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms),weight(1:Nwalker,1:Natoms),Nwalker,Natoms,stepXdist,stepYdist,stepZdist,dist_Q,Nx,Ny,Nz,lnweight_min)
 
-         !! calculate potential correction and exp(-bV)       
+       !! calculate potential correction and exp(-bV)       
          IF(Vswitch)THEN
 
           call calc_Udiff(Nwalker,Natoms,Nregions,Ncycles,x_pos(1:Nwalker,1:Natoms),y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms),&
@@ -1379,8 +1260,6 @@ module routines
    &                    MPI_MIN, MPI_COMM_WORLD,ierr)
        
          lnweight_min=lc-V_min/temp
-       
-      
 
          DO iw = 1, Nwalker
           weight(iw)=exp((V_min-Vdiff0(iw))/temp)
@@ -1411,9 +1290,18 @@ module routines
           z_ave_p(:) = z_ave_pr_p(:)
          ENDIF !Com_switch
 
+      IF (.FALSE..AND.(i_restart.EQ.2).AND.(myrank.eq.0)) THEN
+
+       write(*,*)"point_6",istep
+       ENDIF
+
+
+
+
          IF(myrank.eq.0)THEN
-          call calc_Energy(Nwalker,Natoms,Nregions,Ncycles,x_ave_p(1:Natoms),y_ave_p(1:Natoms),z_ave_p(1:Natoms),Energy_p,E_atoms(1:Natoms))
+
           call calc_Energy(Nwalker,Natoms,Nregions,Ncycles,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms),Energy_q,E_atoms(1:Natoms))
+
 
           call calc_Force(Nwalker,Natoms,Nregions, Ncycles,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms),&
       &                   forceX(1:Natoms), forceY(1:Natoms), forceZ(1:Natoms))
@@ -1423,106 +1311,93 @@ module routines
       &                        + forceY(ina)*forceY(ina) &
       &                        + forceZ(ina)*forceZ(ina)
           ENDDO
-        
+
          ENDIF
          call MPI_BCAST(Energy_q, 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
          call MPI_BCAST(Energy_p, 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-         
-         ! TO check the delta parameter for Rection mode and to change and to reboot the simulation if it is nessesary
-         IF ((mode.eq."Reaction").and.(i_restart.lt.N_restart).and.(istep.gt.400)) THEN
-          IF (E_start .gt. Energy_q .and. Vswitch ) THEN 
-           Nstep = Nstep*N_restart
-           GOTO 200
-          ENDIF
-         ENDIF
-         !  \check the delta parameter 
+
+         ! Write the reaction path with Q function 
 
 
-         ! Write the reaction path with Q (and P) functions + Energy of system  
-         !ina = 1
-         !write(17,'(1i6,3e20.8e4)')istep,dist_Q(max_d(1,ina),max_d(2,ina),max_d(3,ina),ina),dist_P(max_d_corr(1,ina),max_d_corr(2,ina),max_d_corr(3,ina),ina),Energy
          IF(myrank.eq.0.and.(i_restart.lt.N_restart)) THEN 
           write(17,'(1i6,3e20.8e4,i10)')istep+restart_step,Energy_q, Energy_p,sqrt(sq_force),Nwalker*nprocs
 
           write(18,'(1i6,1e20.8e4)', advance='no')istep+restart_step,Energy_q
 
-          ! To write the data only for first 20 atoms or less
-          IF(Natoms.lt.21)THEN
-           DO ina = 1, Natoms-1
-            write(18,'(1e20.8e4)', advance='no')E_atoms(ina)
-           ENDDO
-           write(18,'(1e20.8e4)')E_atoms(Natoms)
-            ELSE 
-            DO ina = 1, 19
-             write(18,'(1e20.8e4)', advance='no')E_atoms(ina)
-            ENDDO
-            write(18,'(1e20.8e4)')E_atoms(20)
-          ENDIF 
-         ENDIF !!/(myrank.eq.0.and.(i_restart.lt.N_restart))
-
-
-         ! To write Energy and coordinates during relaxation for first 50 walkers
-
-         IF((i_restart.EQ.N_restart) .AND. (mode.NE."Initialization") .AND. (myrank.LT.50))  THEN
-
-          x_ave_q(1:Natoms) = x_pos(1,1:Natoms) 
-          y_ave_q(1:Natoms) = y_pos(1,1:Natoms)
-          z_ave_q(1:Natoms) = z_pos(1,1:Natoms)
-
-          call calc_Energy(Nwalker,Natoms,Nregions,Ncycles,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms),Energy_q,E_atoms(1:Natoms))
-
-          iw=200000+myrank
-          write(iw,'(1i6,1e20.8e4)', advance='no')istep+restart_step,Energy_q
-
           DO ina = 1, Natoms-1
-           write(iw,'(1e20.8e4)', advance='no')E_atoms(ina)
+           write(18,'(1e20.8e4)', advance='no')E_atoms(ina)
           ENDDO
-          write(iw,'(1e20.8e4)')E_atoms(Natoms)
+          write(18,'(1e20.8e4)')E_atoms(Natoms)
 
-          iw=100000+myrank
-!          call write_positions(Natoms,x_min,x_max,y_min,y_max,z_min,z_max,iw,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
-          call write_positions(Natoms,xlo,xhi,ylo,yhi,zlo,zhi,xy, xz, yz,bounds,  &
-      &          iw,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
-
-         ENDIF ! i_restart.eq.N_restart .AND. (mode.NE."Initialization") .AND. (myrank.LT.50)
+         ENDIF
 
 
-        ! write average atomic coordinates for Q distribution in the LAMMPS format !!!!!!!
+         ! To write Energy and coordinates during relaxation
+
+         IF(i_restart.eq.N_restart) THEN
+
+            x_ave_q(1:Natoms) = x_pos(1,1:Natoms) 
+            y_ave_q(1:Natoms) = y_pos(1,1:Natoms)
+            z_ave_q(1:Natoms) = z_pos(1,1:Natoms)
+
+            call calc_Energy(Nwalker,Natoms,Nregions,Ncycles,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms),Energy_q,E_atoms(1:Natoms))
+
+            iw=200+myrank
+            write(iw,'(1i6,1e20.8e4)', advance='no')istep+restart_step,Energy_q
+
+            DO ina = 1, Natoms-1
+                write(iw,'(1e20.8e4)', advance='no')E_atoms(ina)
+            ENDDO
+            write(iw,'(1e20.8e4)')E_atoms(Natoms)
+
+         ENDIF ! i_restart.eq.N_restart
+
+
         IF(myrank.eq.0)THEN
-         call write_positions(Natoms,xlo,xhi,ylo,yhi,zlo,zhi,xy, xz, yz,bounds, &
-    &         12,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
-!         call write_positions(Natoms,x_min,x_max,y_min,y_max,z_min,z_max,12,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
+            call write_positions(Natoms,xlo,xhi,ylo,yhi,zlo,zhi,xy, xz, yz,bounds, &
+            &         12,istep+restart_step,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
+
         ENDIF
 
-       ENDIF !steptowrite                       
 
+      ENDIF !steptowrite                        !/calc distribution function
 
-       ! Check the ENERGY at each time step during relaxation : find start points 
+      ! Check the ENERGY at each time step during relaxation : find start points 
 
-       IF ((mode.eq."Initialization").and.(i_restart.eq.2)) THEN
+      IF (i_restart.EQ.2) THEN
+
+         IF (.FALSE..AND.(myrank.EQ.0).AND.(i_restart .eq. N_restart)) THEN
+              write(48,*)"6 "
+              DO iw=1,Nwalker
+                  write(48,*)x_pos(iw,1:Natoms)
+              ENDDO
+         ENDIF
 
          ! Check and save the NEW STRUCTURES!!!!!!!!!!!!!!!!!!!!!!!!!!!
          ! calc  calc_Udiff0_atom 
          call calc_Udiff(Nwalker,Natoms,Nregions,Ncycles,    &
-         &              x_pos(1:Nwalker,1:Natoms), y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms), UdiffX(1:Nwalker,1:Natoms))
+         &              x_pos(1:Nwalker,1:Natoms), y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms),  UdiffX(1:Nwalker,1:Natoms))
+
 
          DO jw = 1, Nwalker
 
            IF ((SUM(UdiffX(jw,1:Natoms))/Natoms < E_threshold).AND.(check_walker(jw)).AND.(.NOT.check_crossing(jw))) THEN
 
              ! we check the structure only 1 time so 
+
              check_crossing(jw) = .TRUE.
 
              N_struct = n1 - 1 + jw
              E_struct(N_struct,1:Natoms) = UdiffX(jw,1:Natoms)
 
-             time_pr(N_struct) = Nstep + istep - time_second_stage
+             time_pr(N_struct) = istep
 
              Energy(1:Natoms) = UdiffX(jw,1:Natoms)
              call get_unique(Natoms,Energy_min(1:Natoms),Energy(1:Natoms),UniqueNumber)
 
+
              number_struct(N_struct) = UniqueNumber       ! Unique Number of structure
-             ! write(*,*)"myrank, N_struct, UniqueNumberi, time_pr",myrank, N_struct, UniqueNumber, time_pr(N_struct)
+
              x_pos_str(N_struct,1:Natoms) = x_pos(jw,1:Natoms)
              y_pos_str(N_struct,1:Natoms) = y_pos(jw,1:Natoms)
              z_pos_str(N_struct,1:Natoms) = z_pos(jw,1:Natoms)
@@ -1531,195 +1406,189 @@ module routines
 
          ENDDO  ! \ENDDO for check all walker at each time step!!!
 
-      ENDIF   ! \ (mode.eq."Initialization").and. (i_restart.EQ.2)
+      ENDIF   ! \ ENDIF for "i_restart.EQ.2"
 
       !!! \Check the ENERGY at each time step during relaxation : find start points
 
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
-      ENDDO              !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   END OF ITERATION     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     ENDDO              !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   END OF ITERATION     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      restart_step = restart_step + Nstep
-
-
-     ENDDO              !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   END OF RESTART LOOP  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-     ! To save initial coordinates for mode Initialization
-     IF(mode.eq."Initialization")THEN 
-           call save_init_data(myrank,nprocs,n1,n2,check_crossing(1:Nwalker),check_walker(1:Nwalker),           &
-      &                         Nwalker,Natoms,                                                                 &
-      &                         time_pr(1:Nwalker*nprocs),                                                      &
-      &                         x_pos_str(1:Nwalker*nprocs,1:Natoms),y_pos_str(1:Nwalker*nprocs,1:Natoms),      &
-      &                         z_pos_str(1:Nwalker*nprocs,1:Natoms),E_struct(1:Nwalker*nprocs,1:Natoms),       &
-      &                         number_struct(1:Nwalker*nprocs),xlo,xhi,ylo,yhi,zlo,zhi,xy,xz,yz,               &
-      &                         bounds(1:3),itype(1:Natoms))
-     ENDIF
-     
-     ! subroutine to close files for each rank   
-     call Fclose(myrank,mode)
-
-   end subroutine solve
-  !-----------
-
-   subroutine finalizempi()
-   use val_mpi, only : ierr
-
-   call MPI_FINALIZE(ierr)
-
-   end subroutine finalizempi
-
-  !---------------------------------------------
-  ! To unite data from each rank to zero and save to files
-   subroutine save_init_data(myrank,nprocs,n1,n2,check_crossing,check_walker,   &
-      &                         Nwalker,Natoms,time_pr,                         &
-      &                         x_pos_str,y_pos_str,z_pos_str,E_struct,         &
-      &                         number_struct,xlo,xhi,ylo,yhi,zlo,zhi,xy,xz,yz, &
-      &                         bounds,itype)
-  !-----------------------
-   
-   use val_mpi, only : ierr
-   integer, intent(in)  :: myrank,nprocs,n1,n2,Nwalker,Natoms,itype(Natoms)
-   character(1), intent(in)  :: bounds(3)
-   real(8), intent(in)  :: E_struct(Nwalker*nprocs,Natoms),xlo,xhi,ylo,yhi,zlo,zhi,xy,xz,yz
-   real(8), intent(in)  :: x_pos_str(Nwalker*nprocs,Natoms),y_pos_str(Nwalker*nprocs,Natoms),z_pos_str(Nwalker*nprocs,Natoms)
-   integer, intent(in)  :: number_struct(Nwalker*nprocs),time_pr(Nwalker*nprocs)
-
-   logical, intent(in)  :: check_walker(Nwalker),check_crossing(Nwalker)
-
-   logical              :: check_str(Nwalker*nprocs),check_pr_str(Nwalker*nprocs),check_walker_pr(Nwalker)
-   integer              :: time(Nwalker*nprocs),iw,jw,istep,ina,istruct,N_struct,UniqueNumber,number_pr_struct(Nwalker*nprocs), number_struct_out(Nwalker*nprocs)
-   real(8)              :: U_write(Nwalker*nprocs),E_pr_struct(Nwalker*nprocs,Natoms),U_write_pr(Nwalker*nprocs)
-   real(8)              :: x_pos_tmp2(Nwalker*nprocs, Natoms),x_ave_q(Natoms)
-   real(8)              :: y_pos_tmp2(Nwalker*nprocs, Natoms),y_ave_q(Natoms)
-   real(8)              :: z_pos_tmp2(Nwalker*nprocs, Natoms),z_ave_q(Natoms)
-   real(8)              :: buf_str(Nwalker*nprocs,Natoms)
-   real(8)              :: x_pos_str_out(Nwalker*nprocs,Natoms),y_pos_str_out(Nwalker*nprocs,Natoms)
-   real(8)              :: z_pos_str_out(Nwalker*nprocs,Natoms),E_struct_out(Nwalker*nprocs,Natoms)
+     restart_step = restart_step + Nstep
 
 
-     ! Save the data and choose the best walkers: find start points
+   ENDDO              !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   END OF RESTART LOOP  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+   ! Save the data and choose the best walkers: find start points
      IF (myrank.eq.0) THEN
           write(48,*)"End of iteration and restart loop"
      ENDIF
 
-     check_walker_pr(:) = .FALSE.
-     check_str(:) = .FALSE.
-     check_pr_str(:) = .FALSE. 
      DO jw = 1, Nwalker
-        check_walker_pr(jw) = check_walker(jw) .AND. check_crossing(jw) 
-!        check_pr_str(n1-1+jw) = check_walker(jw) .AND. check_crossing(jw)
+          check_pr_str(n1-1+jw) = check_walker(jw) .AND. check_crossing(jw)
      ENDDO
+
 
      ! To save all data from each processor to the zero rank (combine the data)
      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
-     ! check_walker_pr(1:Nwalker) = check_pr_str(n1:n2)
-     call MPI_GATHER(check_walker_pr(1:Nwalker),Nwalker,MPI_LOGICAL,check_str,Nwalker,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+     check_walker(1:Nwalker) = check_pr_str(n1:n2)
+     write(*,*)myrank,"check_pr_str",check_walker(1:3),check_pr_str(n1:n1+2)
+     call MPI_GATHER(check_walker(1:Nwalker),Nwalker,MPI_LOGICAL,check_str,Nwalker, MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
 
      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
-     time(:) = 0
+     IF (myrank.EQ.0) THEN
+          write(*,*)"CHECK_STR AFTER MPI_GATHER"
+          write(*,*)check_str(:)
+     ENDIF
+
+     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+
+
+     write(*,*)myrank,"time",time_pr(n1:n1+2)
+
+
+
      call MPI_ALLREDUCE(time_pr,time, Nwalker*nprocs,MPI_INTEGER, &
      &                     MPI_SUM, MPI_COMM_WORLD,ierr)
+
+
+     IF (myrank.EQ.0) THEN
+          write(*,*)"TIME AFTER MPI_ALLREDUCE"
+          write(*,*)time(:)
+     ENDIF
+
 
 
      x_pos_tmp2(:,:) = 0.0d0
      y_pos_tmp2(:,:) = 0.0d0
      z_pos_tmp2(:,:) = 0.0d0
 
+
      x_pos_tmp2(n1:n2,1:Natoms) = x_pos_str(n1:n2,1:Natoms)
-     x_pos_str_out(:,:) = 0.0d0
+     write(*,*)"PLEASE, check the rank",myrank
+     write(*,*)"x_pos:",x_pos_tmp2(n1:n1+2,1:3),x_pos_str(n1:n1+2,1:3)
+
+     x_pos_str(:,:) = 0.0d0
 
      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
-     call MPI_ALLREDUCE(x_pos_tmp2,x_pos_str_out,Nwalker*nprocs*Natoms,MPI_REAL8, &
+     call MPI_ALLREDUCE(x_pos_tmp2,x_pos_str,Nwalker*nprocs*Natoms,MPI_REAL8, &
      &                     MPI_SUM, MPI_COMM_WORLD,ierr)
 
+
+     IF (myrank.EQ.0) THEN
+          write(*,*)"X_POS_STR AFTER MPI_ALLREDUCE"
+          write(*,*)x_pos_str(:,:)
+     ENDIF
 
      y_pos_tmp2(n1:n2,1:Natoms) = y_pos_str(n1:n2,1:Natoms)
-     y_pos_str_out(:,:) = 0.0d0
+     write(*,*)"PLEASE, check the rank",myrank
+     write(*,*)"y_pos:",y_pos_tmp2(n1:n1+2,1:3),y_pos_str(n1:n1+2,1:3)
+
+     y_pos_str(:,:) = 0.0d0
 
      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
-     call MPI_ALLREDUCE(y_pos_tmp2,y_pos_str_out,Nwalker*nprocs*Natoms,MPI_REAL8,&
+     call MPI_ALLREDUCE(y_pos_tmp2,y_pos_str,Nwalker*nprocs*Natoms,MPI_REAL8,&
      &                     MPI_SUM, MPI_COMM_WORLD,ierr)
+
+
 
      z_pos_tmp2(n1:n2,1:Natoms) = z_pos_str(n1:n2,1:Natoms)
-     z_pos_str_out(:,:) = 0.0d0
+     write(*,*)"PLEASE, check the rank",myrank
+     write(*,*)"z_pos:",z_pos_tmp2(n1:n1+2,1:3),z_pos_str(n1:n1+2,1:3)
+
+     z_pos_str(:,:) = 0.0d0
 
      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
-     call MPI_ALLREDUCE(z_pos_tmp2,z_pos_str_out,Nwalker*nprocs*Natoms,MPI_REAL8,&
+     call MPI_ALLREDUCE(z_pos_tmp2,z_pos_str,Nwalker*nprocs*Natoms,MPI_REAL8,&
      &                     MPI_SUM, MPI_COMM_WORLD,ierr)
+
 
      E_pr_struct(:,:) = 0.0d0
      E_pr_struct(n1:n2,1:Natoms) = E_struct(n1:n2,1:Natoms)
-     E_struct_out(:,:) = 0.0d0
+     E_struct(:,:) = 0.0d0
      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
-     call MPI_ALLREDUCE(E_pr_struct,E_struct_out,Nwalker*nprocs*Natoms,MPI_REAL8,&
+     write(*,*)myrank,"E_struct",E_pr_struct(n1:n1+2,1:3)
+
+     call MPI_ALLREDUCE(E_pr_struct,E_struct,Nwalker*nprocs*Natoms,MPI_REAL8,&
      &                     MPI_SUM, MPI_COMM_WORLD,ierr)
+
+     write(*,*)myrank,"number_struct",number_struct(n1:n1+2)
 
      number_pr_struct(:) = 0
      number_pr_struct(n1:n2) = number_struct(n1:n2)
-     number_struct_out(:) = 0
+     number_struct(:) = 0
 
      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
-     call MPI_ALLREDUCE(number_pr_struct,number_struct_out,Nwalker*nprocs,MPI_INTEGER,&
+     call MPI_ALLREDUCE(number_pr_struct,number_struct,Nwalker*nprocs,MPI_INTEGER,&
      &                     MPI_SUM, MPI_COMM_WORLD,ierr)
 
 
-     !IF (myrank.eq.0) THEN
-     !  DO jw = 1, Nwalker*nprocs
-     !   write(*,*)"jw, check_str, time, number_struct_out ",jw, check_str(jw), time(jw), number_struct_out(jw)
-     !  ENDDO
-     !ENDIF
+     write(*,*)myrank,"To save data"
 
-     !write(*,*)myrank,"To save data"
-
-     IF (myrank.eq.0) THEN
+     IF (myrank.EQ.0) THEN
 
          write(48,*)"To save data"
          write(50,*)"To save data"
 
-         ! Save ALL data from structures
+! Save ALL data from structures
 
          open(unit=90,file="ALL_STRUCTURES.dat",status="unknown")
 
+
          DO jw=1,Nwalker*nprocs
 
-            ! to write all separated walkers
-            ! write(*,*)"check_str", check_str(jw)
+            ! to write all seprated walkers
+            write(*,*)"check_str", check_str(jw)
             IF (check_str(jw)) THEN
+                  !     write(*,*)"check point"
+
                   ! Save ALL data from structures
-                  write(90,*)jw,time(jw),check_str(jw),number_struct_out(jw),x_pos_str_out(jw,1),y_pos_str_out(jw,1),z_pos_str_out(jw,1),SUM(E_struct_out(jw,1:Natoms))/Natoms
 
-                  x_ave_q(1:Natoms) = x_pos_str_out(jw,1:Natoms)
-                  y_ave_q(1:Natoms) = y_pos_str_out(jw,1:Natoms)
-                  z_ave_q(1:Natoms) = z_pos_str_out(jw,1:Natoms)
+                  write(90,*)jw,time(jw),check_str(jw),number_struct(jw),x_pos_str(jw,1),y_pos_str(jw,1),z_pos_str(jw,1),SUM(E_struct(jw,1:Natoms))/Natoms
 
-                  call write_positions(Natoms,xlo,xhi,ylo,yhi,zlo,zhi,xy, xz,yz,bounds,&
-                  &                     49,jw,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
+                  x_ave_q(1:Natoms) = x_pos_str(jw,1:Natoms)
+                  y_ave_q(1:Natoms) = y_pos_str(jw,1:Natoms)
+                  z_ave_q(1:Natoms) = z_pos_str(jw,1:Natoms)
 
-                  write(48,'(1i10,1e20.8e4)',advance='no')jw,SUM(E_struct_out(jw,1:Natoms))/Natoms
+                  call write_positions(Natoms,xlo,xhi,ylo,yhi,zlo,zhi,xy, xz, yz,bounds,&
+                  &    49,jw,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
+
+
+                  write(48,'(1i10,1e20.8e4)',advance='no')jw,SUM(E_struct(jw,1:Natoms))/Natoms
+
 
                   DO ina=1,Natoms-1
-                        write(48,'(1e20.8e4)', advance='no')E_struct_out(jw,ina)
+                        write(48,'(1e20.8e4)', advance='no')E_struct(jw,ina)
                   ENDDO
-                  write(48,'(1e20.8e4)')E_struct_out(jw,Natoms)
-                  write(50,'(3i24)')jw,number_struct_out(jw),time(jw)
+
+                  write(48,'(1e20.8e4)')E_struct(jw,Natoms)
+
+                  write(50,'(3i6)')jw,number_struct(jw),time(jw)
+
             ENDIF  !/ (check_str(jw)) 
          ENDDO !\jw=1,Nwalker*nprocs
+
+         write(*,'(A8,3e20.8e4)')"max pos.",maxval(x_pos(1:Nwalker,1:Natoms)),maxval(y_pos(1:Nwalker,1:Natoms)),maxval(z_pos(1:Nwalker,1:Natoms))
+         write(*,'(A8,3e20.8e4)')"min pos.",minval(x_pos(1:Nwalker,1:Natoms)),minval(y_pos(1:Nwalker,1:Natoms)),minval(z_pos(1:Nwalker,1:Natoms))
 
      ENDIF  ! (myrank.eq.0)
 
 
-     IF (myrank.eq.0) THEN
+     IF (myrank.EQ.0) THEN
 
         open(unit=38,file="Chosen_walk_Energy.dat",status="unknown")
         open(unit=39,file="Chosen_walk_Structures.lammpstrj",status="unknown")
         open(unit=40,file="Chosen_walk_Number",status="unknown")
+
+
 
         iw = 0
         istep = 1  ! To use istep as a variable for choosen the slowest walker
@@ -1728,30 +1597,36 @@ module routines
 
         DO jw=1,Nwalker*nprocs
 
-                ! to write ONLY choosen walkers, for example only with unique numbers  102XX,
-                ! which means that 1-st and 2-nd atoms have a largest deviations 
+! to write ONLY choosen walkers, for example only with unique numbers  102XX,
+! which means that 1-st and 2-nd atoms have a largest deviations 
 
-                IF (check_str(jw).AND.(floor(number_struct_out(jw)/1.0d2).EQ.102))THEN     !  1st and 2nd atoms have largest deviations
+                IF (check_str(jw).AND.(floor(number_struct(jw)/1.0d2).EQ.3122)) THEN
 
-                      x_ave_q(1:Natoms) = x_pos_str_out(jw,1:Natoms)
-                      y_ave_q(1:Natoms) = y_pos_str_out(jw,1:Natoms)
-                      z_ave_q(1:Natoms) = z_pos_str_out(jw,1:Natoms)
+                      x_ave_q(1:Natoms) = x_pos_str(jw,1:Natoms)
+                      y_ave_q(1:Natoms) = y_pos_str(jw,1:Natoms)
+                      z_ave_q(1:Natoms) = z_pos_str(jw,1:Natoms)
 
-                      call write_positions(Natoms,xlo,xhi,ylo,yhi,zlo,zhi,xy,xz,yz,bounds,&
-                      &                         39,jw,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
 
-                      write(38,'(1i10,1e20.8e4)',advance='no')jw,SUM(E_struct_out(jw,1:Natoms))/Natoms
+
+                      call write_positions(Natoms,xlo,xhi,ylo,yhi,zlo,zhi,xy, xz,yz,bounds,&
+                      &    39,jw,itype,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms))
+
+
+                      write(38,'(1i10,1e20.8e4)',advance='no')jw,SUM(E_struct(jw,1:Natoms))/Natoms
+
                       DO ina=1,Natoms-1
-                              write(38,'(1e20.8e4)',advance='no')E_struct_out(jw,ina)
+                              write(38,'(1e20.8e4)', advance='no')E_struct(jw,ina)
                       ENDDO
 
-                      write(38,'(1e20.8e4)')E_struct_out(jw,Natoms)
-                      write(40,'(3i12)')jw,number_struct_out(jw),time(jw)
+                      write(38,'(1e20.8e4)')E_struct(jw,Natoms)
+                      write(40,'(3i6)')jw,number_struct(jw),time(jw)
 
                       IF (istep .LT. time(jw)) THEN
                           iw = jw
                           istep = time(jw)
                       ENDIF
+
+
                 ENDIF  !/ (check_str(jw)) 
         ENDDO !\jw=1,Nwalker*nprocs
 
@@ -1767,65 +1642,58 @@ module routines
         write(68,*)"Energy"
 
         IF (iw.NE.0) THEN
-           
-           write(68,'(1i10,1e20.8e4)',advance='no')iw,SUM(E_struct_out(iw,1:Natoms))/Natoms
+                write(68,'(1i10,1e20.8e4)',advance='no')iw,SUM(E_struct(iw,1:Natoms))/Natoms
 
            DO ina=1,Natoms-1
-                 write(68,'(1e20.8e4)', advance='no')E_struct_out(iw,ina)
+                 write(68,'(1e20.8e4)', advance='no')E_struct(iw,ina)
            ENDDO
 
-           write(68,'(1e20.8e4)')E_struct_out(iw,Natoms)
+           write(68,'(1e20.8e4)')E_struct(iw,Natoms)
 
            write(68,*)"Number and time"
 
-           write(68,'(3i6)')iw,number_struct_out(iw),time(iw)
+           write(68,'(3i6)')iw,number_struct(iw),time(iw)
            write(68,*)"Coordinates"
 
            DO ina=1,Natoms
-                write(68,'(1i10,3e20.8e4)')itype(ina),x_pos_str_out(iw,ina),y_pos_str_out(iw,ina),z_pos_str_out(iw,ina)
+                write(68,'(3e20.8e4)')x_pos_str(iw,ina),y_pos_str(iw,ina),z_pos_str(iw,ina)
            ENDDO
         ENDIF    ! \(iw.NE.0)
 
+
         close(68)
 
-      ENDIF  ! \(myrank.eq.0)
-
-      ! \Save the data and choose the best walkers: find start points
-
-   end subroutine save_init_data
+     ENDIF  ! \(myrank.eq.0)
 
 
 
-  !---------------------------------------------
-  ! To close Files for each rank
-   subroutine Fclose(myrank,mode)
-  !-----------------------
+     ! \Save the data and choose the best walkers: find start points
 
-   implicit none
-   integer, intent(in)   :: myrank
-   character, intent(in) :: mode
-   integer :: iw
 
-    IF(myrank.eq.0) THEN
+
+
      close(11)
      close(12)
+
+
+     close(21)
      close(17)
      close(18)
-     close(21)
-    ENDIF
-
-     IF((myrank.LT.50) .AND. (mode.NE."Initialization")) THEN
-       iw = 100000 + myrank
-       close(iw)
-       iw = 200000 + myrank
-       close(iw)
-     ENDIF
+     iw = 51 + myrank
+     close(iw)
 
      IF (myrank.eq.0) THEN
-        write(*,*)"End of simulation."
+        write(*,'(A8,3e20.8e4)')"max pos.",maxval(x_pos(1:Nwalker,1:Natoms)),maxval(y_pos(1:Nwalker,1:Natoms)),maxval(z_pos(1:Nwalker,1:Natoms))
+        write(*,'(A8,3e20.8e4)')"min pos.",minval(x_pos(1:Nwalker,1:Natoms)),minval(y_pos(1:Nwalker,1:Natoms)),minval(z_pos(1:Nwalker,1:Natoms))
      ENDIF
 
-   end subroutine Fclose
+     call MPI_Finalize(ierr)
+
+   end subroutine solve
+  !-----------
+
+
+
 
 
    !!! Unique number : find start points
@@ -1833,12 +1701,16 @@ module routines
    subroutine get_unique(Natoms,Energy_min,Energy,UniqueNumber)
    !-----------------------
 
+
    implicit none
    integer, intent(in) :: Natoms
    real(8), intent(in) :: Energy(Natoms),Energy_min(Natoms)
+
    integer, intent(out) :: UniqueNumber
+
    real(8) :: delta_E(Natoms)
    integer :: ina
+
 
    UniqueNumber = 0
    delta_E(1:Natoms) = Energy(1:Natoms) - Energy_min(1:Natoms)
@@ -1867,6 +1739,13 @@ module routines
 
     end subroutine get_unique
    !------------------------  
+
+
+
+
+
+
+
 
    !------------------------
    subroutine calc_rad_m2(Nwalker,Natoms,x_pos,y_pos,z_pos,rad_minus2) 
@@ -1928,11 +1807,11 @@ module routines
    real(8), intent(out) :: Energy
    real(8), intent(out) :: E_atoms(1:Natoms)
 
-   real(8) :: x_pos_tmp(1,Natoms)
-   real(8) :: y_pos_tmp(1,Natoms)
-   real(8) :: z_pos_tmp(1,Natoms)
-   real(8) :: Energy_tmp(1)
-   real(8) :: pe_tmp(1,Natoms)
+   real(8) :: x_pos_tmp(Nwalker,Natoms)
+   real(8) :: y_pos_tmp(Nwalker,Natoms)
+   real(8) :: z_pos_tmp(Nwalker,Natoms)
+   real(8) :: Energy_tmp(Nwalker)
+   real(8) :: pe_tmp(Nwalker,Natoms)
 
    integer :: ina
 
@@ -1944,14 +1823,14 @@ module routines
    !!/lammps ver. not yet implemented
 
    DO ina = 1, Natoms
-    x_pos_tmp(1,ina) = x_pos(ina)
-    y_pos_tmp(1,ina) = y_pos(ina)
-    z_pos_tmp(1,ina) = z_pos(ina)
+    x_pos_tmp(1:Nwalker,ina) = x_pos(ina)
+    y_pos_tmp(1:Nwalker,ina) = y_pos(ina)
+    z_pos_tmp(1:Nwalker,ina) = z_pos(ina)
    ENDDO
 
-   call calc_Udiff(1, Natoms,Nregions,1, x_pos_tmp, y_pos_tmp, z_pos_tmp, Energy_tmp)
+   call calc_Udiff(Nwalker, Natoms,Nregions,Ncycles, x_pos_tmp, y_pos_tmp, z_pos_tmp, Energy_tmp)
    Energy = Energy_tmp(1)
-   call calc_Udiff(1, Natoms,Nregions,1, x_pos_tmp, y_pos_tmp, z_pos_tmp, pe_tmp)
+   call calc_Udiff(Nwalker, Natoms,Nregions,Ncycles, x_pos_tmp, y_pos_tmp, z_pos_tmp, pe_tmp)
    E_atoms(1:Natoms) = pe_tmp(1,1:Natoms)
 
    !write(*,*)"E_atoms=", E_atoms(:)
@@ -2138,11 +2017,12 @@ dist_Q(:,:,:,:)= log(dist_Q(:,:,:,:)) - 3d0 * log(delta * sqrt(pi))+ lnweight_mi
    !
    !This routine calculates the first moment of x 
    ! x - <x>
+   ! !! updated by Akashi, 2018/09/04
    !
    implicit none
    integer, intent(in) :: Nwalker
    real(8), intent(in) :: func(Nwalker)
-   real(8), intent(in) :: weight(Nwalker)  
+   real(8), intent(in) :: weight(Nwalker)  !! added by Akashi
    real(8), intent(out) :: mom1(Nwalker)
    real(8), intent(out) :: ave
 
@@ -2173,11 +2053,11 @@ dist_Q(:,:,:,:)= log(dist_Q(:,:,:,:)) - 3d0 * log(delta * sqrt(pi))+ lnweight_mi
    !
    !This routine calculates the first moment of x for N atoms 
    ! x - <x>
-   
+   ! !! updated by Akashi, 2018/06/30
    implicit none
    integer, intent(in) :: Nwalker,Natoms
    real(8), intent(in) :: func(Nwalker,Natoms)
-   real(8), intent(in) :: weight(Nwalker)  
+   real(8), intent(in) :: weight(Nwalker)  !! added by Akashi
    real(8), intent(out) :: mom1Natoms(Nwalker,Natoms)
    real(8), intent(out) :: aveNatoms(Natoms)
 
@@ -2223,7 +2103,6 @@ end module routines
    !LAMMPS or OVITO  
    ! 
    use bistable1d_val, only: b_vec
-   use val_mpi, only:  myrank
    implicit none
    integer, intent(in) :: Natoms
    integer, intent(in) :: itype(Natoms)
@@ -2363,19 +2242,11 @@ program main
   implicit none
 
   call initmpi()
-  !write(*,*)"initmpi is finished"
   call stdin()
-  !write(*,*)"stdin is finished"  
   call gen_walker()
-  !write(*,*)"gen_walker is finished"
   call init_lmp(.false.)
-  !write(*,*)"init_lmp is finished"
   call solve()
-  !write(*,*)"solve is finished"
   call finalize_lmp()
-  !write(*,*)"finilize_lmp is finished"
-  call finalizempi()
-  !write(*,*)"Simulation is finished"
 
   !call write_data()
 end program

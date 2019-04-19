@@ -12,18 +12,12 @@ module bistable1d_val
 
   real(8), save :: &
   & temp,          & ! temperature [Kelvin]
-  & factor,        & ! heating factor T_eff = temp*factor
-  & x_ini(2),         & ! initial x1 and x2 positions for mode=initial
-  & y_ini(2),         & ! initial y1 and y2 positions for mode=initial
-  & z_ini(2),         & ! initial z1 and z2 positions for mode=initial
   & dt,               & ! timestep
   & ratio,            & ! delta parameter in equation
   & ratio_ctrl          ! delta parameter in equation !! AKASHI
 
   character(256), save :: &
-  & mode,          &  ! initial mode 
-  & &                 ! 'initial':delta function
-  & &                 ! 'load'   :read from file
+  & mode,          &  ! initial mode  
   & fin,           &  ! walker input filename
   & fout              ! walker output filename
 
