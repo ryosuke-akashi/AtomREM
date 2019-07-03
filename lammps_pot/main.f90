@@ -1366,25 +1366,26 @@ module routines
           DO iw=1, Nwalker
            Vdiff0(iw)=Vdiff0(iw) - V_ini
           ENDDO 
-         ENDIF !Vswitch
 
 
-         V_min_pr = Vdiff0(1)
-         DO iw = 1, Nwalker
-          IF (V_min_pr.gt.Vdiff0(iw)) THEN 
-           V_min_pr = Vdiff0(iw)
-          ENDIF
-         ENDDO
-         call MPI_ALLREDUCE(V_min_pr, V_min, 1, MPI_REAL8, & 
+          V_min_pr = Vdiff0(1)
+          DO iw = 1, Nwalker
+           IF (V_min_pr.gt.Vdiff0(iw)) THEN 
+            V_min_pr = Vdiff0(iw)
+           ENDIF
+          ENDDO
+          call MPI_ALLREDUCE(V_min_pr, V_min, 1, MPI_REAL8, & 
    &                    MPI_MIN, MPI_COMM_WORLD,ierr)
        
-         lnweight_min=lc-V_min/temp
+          lnweight_min=lc-V_min/temp
        
       
 
-         DO iw = 1, Nwalker
-          weight(iw)=exp((V_min-Vdiff0(iw))/temp)
-         ENDDO
+          DO iw = 1, Nwalker
+           weight(iw)=exp((V_min-Vdiff0(iw))/temp)
+          ENDDO
+
+         ENDIF !Vswitch
 
          call calc_moment1Natoms(x_pos(1:Nwalker,1:Natoms),Nwalker,Natoms,weight(1:Nwalker),mom1Natoms(1:Nwalker,1:Natoms),x_ave_pr_p(1:Natoms))
          call calc_moment1Natoms(y_pos(1:Nwalker,1:Natoms),Nwalker,Natoms,weight(1:Nwalker),mom1Natoms(1:Nwalker,1:Natoms),y_ave_pr_p(1:Natoms))
