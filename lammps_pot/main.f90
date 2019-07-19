@@ -14,7 +14,7 @@
 !        There is a _THEORY_ of method:                                                                                 !
 !                  J. Phys. Soc. Jpn. 87, 063801 (2018) - https://journals.jps.jp/doi/abs/10.7566/JPSJ.87.063801        !
 !        There is an _ALGORITHM_ of method and examples of simulations:                                                 !
-!                  https://arxiv.org/abs/1812.06581                                                                     !
+!                  Yu.S.Nagornov, R.Akashi Physica A, 528, 121481 (2019) - https://doi.org/10.1016/j.physa.2019.121481  !
 !                                                                                                                       !
 !        This code has three modes of work:                                                                             !
 !                       1 - Initialization - seekeng the initial positions (initialization mode),                       !
@@ -26,6 +26,9 @@
 !                                                                                                                       !      
 !        The reaction path is drawn by saving of maxima of Q distribution, in other words                               ! 
 !        the reaction path is the average atomic coordinates and atomic energies.                                       !
+!                                                                                                                       !
+!        The code utilized the LAMMPS  (https://lammps.sandia.gov) as a shared library for potential calculation using  !
+!        the diagonalHESSIAN package (reduction from "compute_partialHESSIAN")                                          !
 !                                                                                                                       !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -59,10 +62,10 @@ module routines
    character(len=256), parameter :: fin = "in.case"
 
    real(8), parameter :: eunit=  1.671d0 ! 10^-14 erg instead 1.0d0
-   !real(8), parameter :: dunit= 1.0d0
-   real(8), parameter :: dunit= 3.4d0
-   !real(8), parameter :: dcut = 2.0d0
-   real(8), parameter :: dcut = 8.0d0
+   real(8), parameter :: dunit= 1.0d0
+   !real(8), parameter :: dunit= 3.4d0
+   real(8), parameter :: dcut = 2.0d0
+   !real(8), parameter :: dcut = 8.0d0
    real(8), parameter :: dcut2 = dcut*2d0
    !integer, parameter :: MAX_REGION = 16384 !! 
    integer, parameter :: MAX_REGION = 1 !! 
@@ -130,7 +133,7 @@ module routines
    ENDIF
    !!/Generate data.case file
 
-   !! Generate lammps in file
+   !! Generate lammps input file "in.case"
 
    IF(myrank==0)THEN
     DO iw = 1, Nregions
@@ -145,6 +148,7 @@ module routines
 !    write(fp,*)"boundary    f f f"
     write(fp,*)"atom_style  atomic"
     write(fp,*)"atom_modify  map array"
+    write(fp,*)"atom_modify  sort 0 0.0"
     write(fp,*)""
     write(fp,*)"read_data data.case"
     write(fp,*)""
@@ -162,14 +166,22 @@ module routines
     write(fp,*)""
     write(fp,*)"neighbor      0.3  bin"
     write(fp,*)"compute       peatom all pe/atom"
- 
-!    DO iw = 1, Nregions
-!     write(fp,'(a10, a7, a22, a7, a20)')"compute",trim(id_pe(iw)),"all  reduce/region", trim(id_re(iw)) , "sum c_peatom"
-!    ENDDO
-    DO iw = 1, Nregions
-     write(fp,'(a10, a7, a30)')"compute",trim(id_pe(iw)),"all  reduce sum c_peatom"
-    ENDDO
-    write(fp,*)"fix 1 all nve"
+    write(fp,*)""
+
+    write(fp,*)"compute         hsmtrxD    all  diagonalHessian  5e-9"
+
+    write(fp,*)""
+    write(fp,*)"compute         frcX    all property/atom fx"
+    write(fp,*)"compute         frcY    all property/atom fy"
+    write(fp,*)"compute         frcZ    all property/atom fz"
+
+!    write(fp,*)"thermo_style custom step temp etotal c_hsmtrxD[*] "
+!    write(fp,*)"thermo_modify  line multi format float %20.15g  flush yes"
+
+
+!    write(fp,*)"  thermo         1    "
+
+! PLEASE add log non after debagging
     write(fp,*)"log none"
    
     close(fp)
@@ -181,12 +193,11 @@ module routines
    
    !! MPI split for lammps
    lammps = myrank
-   call MPI_COMM_SPLIT(MPI_COMM_WORLD, lammps, 0, comm_lammps, ierr)
-   
-   
+   call MPI_COMM_SPLIT(MPI_COMM_WORLD, lammps, 0, comm_lammps, ierr)    
+  
    call lammps_open(comm_lammps,ptr)
    !!/MPI split for lammps
-   
+
    !! Open LAMMPS initial files
    open(unit=fp, file=fin, action='read', status='old', iostat=ierr)
    n = 0
@@ -202,12 +213,22 @@ module routines
       ENDIF
      ENDIF
     ENDIF
+
+
+
     call MPI_BCAST(n,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+
+
+
     IF(n==0) EXIT
     call MPI_BCAST(line, n, MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
 !   IF (lammps == 1) call lammps_command(ptr, line, n)
+
+
+
     call lammps_command(ptr, line, n)
    ENDDO
+
    close(fp)
    !!/Open LAMMPS initial files
 
@@ -249,11 +270,13 @@ module routines
   &                 dt, ratio, mode, fin, fout,                                     &
   &                 x_orig, y_orig, z_orig, a_vec1, a_vec2, a_vec3, bounds
   
+   mode = trim(mode)
 
    IF(myrank.eq.0)THEN
     open(unit=10,file="param_3N.in",status="unknown")
     read(unit=10,nml=input,err=100)
     close(10)
+    write(*,*)"Nwalker, nprocs=",Nwalker, nprocs
     IF(mod(Nwalker,nprocs).ne.0)THEN
      write(*,*)"Error: Number of walkers must be multiple of nprocs"
      stop
@@ -266,6 +289,7 @@ module routines
                                 ! it takes a lot of hard disk space and memory, 
                                 ! and utilized only for debagging  
     Debag = .FALSE.             ! the same reason - it's only for debagging process
+
 
     mode = trim(mode)
 
@@ -580,7 +604,8 @@ module routines
      !        energy deviations from equilibrium state 
      !        to find initial points
      integer :: istruct,N_struct,UniqueNumber
-     integer :: time_second_stage
+     integer :: time_second_stage 
+     real(8) :: timer_s, timer_f
 
      real(8) :: Energy_min(Natoms),Energy(Natoms)
      real(8) :: E_struct(Nwalker*nprocs,Natoms),U_write(Nwalker*nprocs),E_pr_struct(Nwalker*nprocs,Natoms),U_write_pr(Nwalker*nprocs)
@@ -601,6 +626,8 @@ module routines
 
       n1 = myrank*Nwalker + 1
       n2 = n1 + Nwalker - 1
+
+
 
       IF(mode=="Initialization")THEN
        U_write_pr(:) = 0.0d0
@@ -731,6 +758,8 @@ module routines
       ENDIF
 
 
+
+
       ! ITERATION FOR SEVERAL simulation with PULL OUT walkers at first steps ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  
       restart_step = 0   ! initial number of step
@@ -792,6 +821,8 @@ module routines
          ENDIF
 
        ENDIF      ! \(i_restart .eq. N_restart) .AND. (mode.NE."Initialization")
+
+
 
 
        ! FOR RELAXATION - LAST CIRCLE: find start points  
@@ -883,6 +914,8 @@ module routines
        ENDIF
 
 
+
+
       ! Initialization for simulation circle 
 
       
@@ -947,6 +980,8 @@ module routines
 
        !call  calc_rad_m2(Nwalker,Natoms,x_pos(1:Nwalker,1:Natoms),y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms),rad_m2(1:Nwalker,1:Natoms,1:Natoms))
 
+
+
        call calc_Udiff(Nwalker,Natoms,Nregions,Ncycles,&
         &          x_pos(1:Nwalker,1:Natoms),y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms), Vdiff0(1:Nwalker))
 
@@ -954,10 +989,9 @@ module routines
 
         E_start = Vdiff0(1)/Natoms   ! Initial energy of system
 
-        write(*,*)"Initial Energy = ",E_start
-       
+        IF (myrank.eq.0)THEN
+         write(*,*)"Initial Energy = ",E_start
 
-        IF (myrank.eq.1)THEN
          write(*,*)"x_pos = ",x_pos(1,1:Natoms)
          write(*,*)"y_pos = ",y_pos(1,1:Natoms)
          write(*,*)"z_pos = ",z_pos(1,1:Natoms)
@@ -965,7 +999,7 @@ module routines
          write(*,*)"Nwalker = ",Nwalker
          write(*,*)"Vdiff0 = ",Vdiff0(1)
          write(*,*)"Nregions,Ncycles = ",Nregions,Ncycles
-         
+         write(*,*)"  " 
          ENDIF
        ENDIF
  
@@ -988,16 +1022,11 @@ module routines
         write(*,*)"INITIALIZATION!!!!!!!!!"
         write(*,*)"V_min = ",V_min
         write(*,*)"Temperature of simulation T = ",temp
-
         write(*,*)"Vdiff_0(1) = "
-
         write(*,*)Vdiff0(1)+V_min
-
-
         write(*,*)"V_exp(1) = "
-
         write(*,*)Vexp(1)
-
+        write(*,*)"  "
 
        ENDIF 
      
@@ -1016,6 +1045,7 @@ module routines
 
         write(*,*)"average values of Vexp = "
         write(*,*)ina,Vexp_ave
+        write(*,*)"  "
        ENDIF
 
 
@@ -1049,11 +1079,25 @@ module routines
         !! calculate factor P
 
         IF(Vswitch) THEN
+
+!         call cpu_time(timer_s)
          call calc_Udiff(Nwalker,Natoms,Nregions,Ncycles,&
 &                       x_pos(1:Nwalker,1:Natoms),y_pos(1:Nwalker,1:Natoms),z_pos(1:Nwalker,1:Natoms),&
 &                    UdiffX(1:Nwalker,1:Natoms),UdiffY(1:Nwalker,1:Natoms),UdiffZ(1:Nwalker,1:Natoms),                                                     &
 &                    Vdiff2X(1:Nwalker,1:Natoms),Vdiff2Y(1:Nwalker,1:Natoms),Vdiff2Z(1:Nwalker,1:Natoms) )
 
+!        IF (myrank.eq.0) THEN
+!          call cpu_time(timer_f)
+!          write(*,*)"time of calculation is  ", timer_f - timer_s
+!        ENDIF
+
+!        write(*,*)"ID_atom  UdiffX UdiffY UdiffZ  Vdiff2X  Vdiff2Y  Vdiff2Z"
+!        DO iw=1, Nwalker
+!         write(*,*)"Number_of_walker = ", iw
+!         DO ina=1, Natoms
+!         write(*,*)ina,UdiffX(iw,ina),UdiffY(iw,ina),UdiffZ(iw,ina),Vdiff2X(iw,ina),Vdiff2Y(iw,ina),Vdiff2Z(iw,ina)
+!         ENDDO
+!        ENDDO
 
          VdiffX(:,:) = (1d0 - ratio)*UdiffX(:,:)
          VdiffY(:,:) = (1d0 - ratio)*UdiffY(:,:)
@@ -1416,8 +1460,12 @@ module routines
           call calc_Energy(Nwalker,Natoms,Nregions,Ncycles,x_ave_p(1:Natoms),y_ave_p(1:Natoms),z_ave_p(1:Natoms),Energy_p,E_atoms(1:Natoms))
           call calc_Energy(Nwalker,Natoms,Nregions,Ncycles,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms),Energy_q,E_atoms(1:Natoms))
 
-          call calc_Force(Nwalker,Natoms,Nregions, Ncycles,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms),&
+!          call calc_Force(Nwalker,Natoms,Nregions, Ncycles,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms),&
+!      &                   forceX(1:Natoms), forceY(1:Natoms), forceZ(1:Natoms))
+
+          call calc_Force(1,Natoms,Nregions, Ncycles,x_ave_q(1:Natoms),y_ave_q(1:Natoms),z_ave_q(1:Natoms),&
       &                   forceX(1:Natoms), forceY(1:Natoms), forceZ(1:Natoms))
+
           sq_force =0d0
           DO ina=1, Natoms
            sq_force = sq_force + forceX(ina)*forceX(ina) &
@@ -1555,7 +1603,13 @@ module routines
       &                         number_struct(1:Nwalker*nprocs),xlo,xhi,ylo,yhi,zlo,zhi,xy,xz,yz,               &
       &                         bounds(1:3),itype(1:Natoms))
      ENDIF
-     
+    
+!        IF (myrank.eq.0) THEN
+!          call cpu_time(timer_f)
+!          write(*,*)"time of all calculations is  ", timer_f - timer_s
+!        ENDIF
+
+ 
      ! subroutine to close files for each rank   
      call Fclose(myrank,mode)
 

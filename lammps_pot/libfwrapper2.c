@@ -36,7 +36,7 @@ void lammps_open_(MPI_Fint *comm, int64_t *ptr)
     ccomm = MPI_Comm_f2c(*comm);
 
 //    lammps_open(0,NULL,ccomm,&obj);
-
+//    To stop output from lammps and avoid huge out files
     char* opt[]={"", "-sc", "none"};
  
     lammps_open(3,opt,ccomm,&obj);
@@ -166,14 +166,85 @@ void lammps_extract_compute_atom_vec_(int64_t *ptr, char *name, MPI_Fint *len1, 
     cpy1 = (char *)calloc(*len1 + 1,sizeof(char));
     memcpy(cpy1, name, *len1);
 
-//    printf("obj= %s \n", obj);
+    
+
+
     vec = (double *)lammps_extract_compute(obj, cpy1, 1, 1);
+//    printf("%s\n",cpy1);
+//    printf("obj= %s \n", obj);
+//   printf("X()=%d\n",vec); 
     for(i = 0; i < *len2; i++){
      *(pe + i) = *(vec + i);
     }
 //    printf("pe= %f \n", *pe);
     free(cpy1);
 }
+
+
+void lammps_extract_variable_atom_vec_(int64_t *ptr, char *name, MPI_Fint *len1, double *pe, MPI_Fint *len2)
+{   
+    void *obj;
+    char *cpy1;
+    double *vec;
+    int i;
+    
+    obj = (void *) *ptr;
+    
+    cpy1 = (char *)calloc(*len1 + 1,sizeof(char));
+    memcpy(cpy1, name, *len1);
+
+    
+    vec = (double *)lammps_extract_variable(obj, cpy1, "all");
+    printf("%s\n",cpy1); 
+    printf("obj= %s \n", obj);
+   printf("X()=%d\n",vec); 
+    for(i = 0; i < *len2; i++){
+     *(pe + i) = *(vec + i);
+    }
+
+        free(cpy1);
+        }
+
+
+
+void lammps_extract_compute_hessian_(int64_t *ptr, char *name, MPI_Fint *len1, double *hsX, double *hsY, double *hsZ,  MPI_Fint *len2)
+{
+    void *obj;
+    char *cpy1;
+//  Hessian diagonal elements as a global vector length = 3 * N_atoms
+    double *hes;
+
+    int i;
+
+//    arr = (double *)calloc(*len2 * 3, sizeof(double));
+//    arr = (double **)calloc(*len2 * 3, sizeof(double));
+
+    obj = (void *) *ptr;
+
+    cpy1 = (char *)calloc(*len1 + 1,sizeof(char));
+    memcpy(cpy1, name, *len1);
+
+//    printf("obj= %s \n", obj);
+//    printf("%s\n",cpy1);
+    hes = (double *)lammps_extract_compute(obj, cpy1, 0, 1);
+
+//    printf("obj= %s \n", obj);
+   
+    for(i = 0; i < *len2; i++){
+//       printf("X(%d)=%d\n",i,hes);
+
+        *(hsX + i) = *(hes + 3*i + 0 );
+        *(hsY + i) = *(hes + 3*i + 1 );
+        *(hsZ + i) = *(hes + 3*i + 2 );
+
+    }
+      free(cpy1);
+}
+
+
+
+
+
 /* wrapper to copy coordinates from lammps to fortran */
 
 /* NOTE: this is now out-of-date, needs to be updated to lammps_gather_atoms()

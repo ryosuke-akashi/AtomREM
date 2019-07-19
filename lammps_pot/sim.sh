@@ -1,5 +1,5 @@
 #!/bin/sh
-#PBS -q gpgpu
+#PBS -q has2667 
 #PBS -j oe
 #PBS -l nodes=1:ppn=16
 #
@@ -42,59 +42,15 @@ echo     "hostname : " `hostname`
 #
 #######################  End of Initialization   ##############################
 #                                                                                
-for node in ${used_nodes}
-do
-#
-    ssh ${node} "
-cd ${PBS_O_WORKDIR}
-#
-# Make local directories in each nodes
-#
-mkdir -v /scratch/${PBS_JOBID}
-#
-# (1) Copy-in files to all nodes
-#
-cp -r -f * /scratch/${PBS_JOBID}
-"
-#
-done
-#
-# (2) Copy-in files anly to the root node
-#
-cd ${PBS_O_WORKDIR}
-#cp -r xxx.in /scratch/${PBS_JOBID}
-#
-cd /scratch/${PBS_JOBID}
 #
 # (3) Program(s) execution
 #
-mpirun -machinefile ${PBS_NODEFILE} -ppn ${proc_per_node} -np ${num_proc} ${PBS_O_WORKDIR}/a.out < ${PBS_O_WORKDIR}/param_3N.in > out
-#
-# (4) Copy-out files only from root node
-#
-cp -r -f * ${PBS_O_WORKDIR}
-#
 cd ${PBS_O_WORKDIR}
+LD_LIBRARY_PATH="/home/iurii/src/lammps-5Jun19/src/:"$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH
+
+mpirun -machinefile ${PBS_NODEFILE} -ppn ${proc_per_node} -np ${num_proc} ./a.out < ./param_3N.in > ./out
 #
-for node in ${used_nodes}
-do
-#
-    ssh ${node} "
-cd /scratch/${PBS_JOBID} 
-#
-# (5) Copy-out files from all nodes
-#
-#cp -r XXX.out ${PBS_O_WORKDIR}
-#
-# Delete scratch directories
-#
-cd ${PBS_O_WORKDIR}
-rm -r -f /scratch/${PBS_JOBID}
-"
-#
-done
-#
-echo  
 echo      END DATE : `date`
 echo  
 echo "##### done #####"
