@@ -10,8 +10,9 @@ module bistable1d_val
   & steptowrite      ! number of steps in order to write the path and other data
 
 
-  real(8), save :: &
-  & temp,          & ! temperature [Kelvin]
+  real(8), save ::    &
+  & temp,             & ! temperature [Kelvin]
+  & tempFin,          & ! temperature [Kelvin] for final stage in "Reacton" and "Initialization" modes
   & dt,               & ! timestep
   & ratio,            & ! delta parameter in equation
   & ratio_ctrl          ! delta parameter in equation !! AKASHI

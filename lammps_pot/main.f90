@@ -62,10 +62,10 @@ module routines
    character(len=256), parameter :: fin = "in.case"
 
    real(8), parameter :: eunit=  1.671d0 ! 10^-14 erg instead 1.0d0
-   real(8), parameter :: dunit= 1.0d0
-   !real(8), parameter :: dunit= 3.4d0
-   real(8), parameter :: dcut = 2.0d0
-   !real(8), parameter :: dcut = 8.0d0
+   !real(8), parameter :: dunit= 1.0d0
+   real(8), parameter :: dunit= 3.4d0
+   !real(8), parameter :: dcut = 2.0d0
+   real(8), parameter :: dcut = 8.0d0
    real(8), parameter :: dcut2 = dcut*2d0
    !integer, parameter :: MAX_REGION = 16384 !! 
    integer, parameter :: MAX_REGION = 1 !! 
@@ -257,7 +257,7 @@ module routines
    end subroutine finalize_lmp
   !-----------
    subroutine stdin()
-   use bistable1d_val, only : Nstep, Nwalker, Natoms, temp, steptowrite, dt, ratio, &
+   use bistable1d_val, only : Nstep, Nwalker, Natoms, temp, tempFin, steptowrite, dt, ratio, &
   &                           mode, fin, fout,  Dist_switch, Debag, Vswitch,        &
   &                           a_orig, a_vec, b_vec, bounds,                         &
   &                           xlo, xhi, ylo, yhi, zlo, zhi, xy, xz, yz
@@ -266,7 +266,7 @@ module routines
 
    real(8) :: x_orig, y_orig, z_orig
    real(8) :: a_vec1(3), a_vec2(3), a_vec3(3)   
-   namelist /input/ Nstep, Nwalker, Natoms, temp, steptowrite,                      &
+   namelist /input/ Nstep, Nwalker, Natoms, temp, tempFin, steptowrite,                      &
   &                 dt, ratio, mode, fin, fout,                                     &
   &                 x_orig, y_orig, z_orig, a_vec1, a_vec2, a_vec3, bounds
   
@@ -349,6 +349,7 @@ module routines
    call MPI_BCAST(Nwalker , 1, MPI_INTEGER4, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(Natoms  , 1, MPI_INTEGER4, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(temp    , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+   call MPI_BCAST(tempFin , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(steptowrite   , 1, MPI_INTEGER4, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(dt      , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
    call MPI_BCAST(ratio   , 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
@@ -453,7 +454,7 @@ module routines
   !-----------
    subroutine solve()
 
-   use bistable1d_val, only: Nstep, Nwalker,  Natoms,Nregions,Ncycles, itype,x_pos, y_pos, z_pos, steptowrite, dt, mode, ratio,ratio_ctrl, fout, temp, Vswitch, Dist_switch, Debag, xlo, xhi, ylo, yhi, zlo, zhi, xy, xz, yz, bounds
+   use bistable1d_val, only: Nstep, Nwalker,  Natoms,Nregions,Ncycles, itype,x_pos, y_pos, z_pos, steptowrite, dt, mode, ratio,ratio_ctrl, fout, temp, tempFin, Vswitch, Dist_switch, Debag, xlo, xhi, ylo, yhi, zlo, zhi, xy, xz, yz, bounds
    use val_mpi, only: ierr, myrank, nprocs
    use potentials, only: calc_Udiff
    use mt19937
@@ -773,8 +774,8 @@ module routines
       DO i_restart =1, N_restart           !!!!!!!!!!!!!    RESTART    !!!!!!!!!!!!!!!
 
        ! the function of delta parameter could be changed for a constant, for example
-       ! ratio = 0.48d0 - (0.48d0 - ratio_ini) * (N_restart - i_restart+1) / N_restart 
-       ratio = ratio_ini       
+       ratio = 0.48d0 - (0.48d0 - ratio_ini) * (N_restart - i_restart+1) / N_restart 
+       !ratio = ratio_ini       
 
        IF (myrank.eq.0) THEN 
         write(*,*)"i_restart = ",i_restart
@@ -786,6 +787,8 @@ module routines
 
         call restart_lmp()
 
+        temp = tempFin    ! to increase the temperture at final stage
+
         Vswitch = .false.
         Nwalker = 1                     ! This time is for RELAXATION !!! 
         Com_switch = .false.            ! This time is for RELAXATION !!! 
@@ -795,7 +798,7 @@ module routines
          open(unit=50, file="saddle.dat", status="unknown")
 
          DO ina=1, Natoms
-          write(50,'(3f16.8)')x_ave_q(ina), y_ave_q(ina), z_ave_q(ina)
+          write(50,'(1i10,3f16.8)')itype(ina),x_ave_q(ina), y_ave_q(ina), z_ave_q(ina)
          ENDDO
          close(50)
 
@@ -843,7 +846,7 @@ module routines
             write(48,*)"Calculate potential for each walker"
         ENDIF
 
-        temp = 0.1d-2
+        temp =  tempFin    ! 0.1d-2 ! the temperature for relaxation 
 
             ! We must to mark the walkers with E_cut-dE < E < E_cut+dE before
             ! relaxation at

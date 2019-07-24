@@ -3,6 +3,7 @@ Nstep = 30,
 Nwalker = 16,
 Natoms = 54,
 temp = 0.001,
+tempFin = 0.1,
 steptowrite = 1,
 dt  = 0.002,
 ratio = 0.48
