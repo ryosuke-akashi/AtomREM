@@ -58,6 +58,7 @@ module routines
 
    character (len=1024) :: line
    integer, parameter :: fp = 20
+   integer, parameter :: fpair = 21
    integer :: n
    character(len=256), parameter :: fin = "in.case"
 
@@ -152,9 +153,13 @@ module routines
     write(fp,*)""
     write(fp,*)"read_data data.case"
     write(fp,*)""
-    write(fp,*)"pair_style  lj/cut", dcut
-    write(fp,*)""
-    write(fp,'(a10, 2a6, 3f9.4)')"pair_coeff", "*", "*", eunit, dunit
+    open(unit=fpair, file="in.pair", status="old", iostat=ierr)
+    DO 
+     read(unit=fpair, fmt='(A)', iostat=ierr) line
+     IF(ierr.ne.0)exit
+     write(fp, *)trim(line)
+    ENDDO
+    close(fpair)
 !    write(fp,'(a10, 2a6, 3f9.4)')"pair_coeff", "*", "*", eunit, dunit, dcut
 !    write(fp,'(a10, 2a6, a15, a6)')"pair_coeff", "*", "*", "CH.airebo", "C H"
 !    DO iw = 1, Nregions
