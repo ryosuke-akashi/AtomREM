@@ -674,7 +674,7 @@ module routines
 
        call MPI_BCAST(Energy_min(1:Natoms), Natoms, MPI_REAL8,0,MPI_COMM_WORLD,ierr)
 
-       dE = 1.0d-1 * temp 
+       dE = 0.25d0 * temp 
        E_cut = temp + SUM(Energy_min(1:Natoms))/Natoms 
        E_threshold = 1.5d-1 * temp  +  SUM(Energy_min(1:Natoms))/Natoms
 
@@ -872,7 +872,7 @@ module routines
 
         DO iw=1, Nwalker
 
-             IF ((Vdiff0(iw) < E_cut+0.5d-1).AND.(Vdiff0(iw) > E_cut - 0.5d-1)) THEN
+             IF ((Vdiff0(iw) < E_cut + dE).AND.(Vdiff0(iw) > E_cut - dE)) THEN
              !  IF (Vdiff0(iw) > E_cut) THEN
                     check_walker(iw) = .TRUE.  ! we mark this walker as a potential candidate 
              ENDIF
