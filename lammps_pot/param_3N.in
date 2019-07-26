@@ -1,20 +1,20 @@
 &input
-Nstep = 30,
-Nwalker = 16,
-Natoms = 54,
-temp = 0.001,
-tempFin = 0.1,
-steptowrite = 1,
-dt  = 0.002,
-ratio = 0.48
-mode = "Reaction"
+Nstep = 4000,
+Nwalker = 160,
+Natoms = 7,
+temp = 0.1,
+tempFin = 0.001,
+steptowrite = 100,
+dt  = 0.005,
+ratio = 0.38
+mode = "Initialization"
 fin = "atoms.dat"
 fout = "out.dat"
-x_orig = -0.5
-y_orig = -0.5
-z_orig = -0.5
-a_vec1 = 3.262080 0.000000 0.000000
-a_vec2 = 0.543680 2.825044 0.000000
-a_vec3 = 0.000000 0.000000 5.326954
-bounds = p p p
+x_orig = -6.0
+y_orig = -6.0
+z_orig = -4.0
+a_vec1 = 13.0 0.000000 0.000000
+a_vec2 = 0.000000 13.0 0.000000
+a_vec3 = 0.000000 0.000000  9.0
+bounds = f f f
 /

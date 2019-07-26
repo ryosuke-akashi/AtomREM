@@ -620,9 +620,9 @@ module routines
 
      logical :: check_crossing(Nwalker),check_str(Nwalker*nprocs),check_walker(Nwalker),check_pr_str(Nwalker*nprocs)
 
-     real(8), parameter :: dE = 0.01d0
-     real(8), parameter :: E_threshold = -3.92d0
-     real(8), parameter :: E_cut = -3.8d0
+     real(8) :: dE  ! , parameter :: dE = 0.01d0
+     real(8) :: E_threshold ! , parameter :: E_threshold = -3.92d0
+     real(8) :: E_cut  ! , parameter :: E_cut = -3.8d0
 
      character(32)  :: f_walker
      
@@ -668,11 +668,22 @@ module routines
         DO ina=1, Natoms
          Energy_min(ina) = UdiffX(1,ina)
          write(48,*)"i_atom, Energy_min", ina, Energy_min(ina)
-        ENDDO
+        ENDDO       
         write(48,*)"Energy_ave",  SUM(Energy_min(1:Natoms))/Natoms
        ENDIF
 
        call MPI_BCAST(Energy_min(1:Natoms), Natoms, MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+
+       dE = 1.0d-1 * temp 
+       E_cut = temp + SUM(Energy_min(1:Natoms))/Natoms 
+       E_threshold = 1.5d-1 * temp  +  SUM(Energy_min(1:Natoms))/Natoms
+
+       IF (myrank.eq.0) THEN
+        write(48,*)"Energy_cut = ", E_cut
+        write(48,*)"delta_Energy = ",dE
+        write(48,*)"Energy_threshold = ",E_threshold
+       ENDIF
+
 
        !!!!!!!!!!!!  \   ! Initial ENERGIES FOR GROUND STATE :  find start points
 
