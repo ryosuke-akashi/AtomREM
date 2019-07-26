@@ -1767,7 +1767,7 @@ module routines
             ! write(*,*)"check_str", check_str(jw)
             IF (check_str(jw)) THEN
                   ! Save ALL data from structures
-                  write(90,*)jw,time(jw),check_str(jw),number_struct_out(jw),x_pos_str_out(jw,1),y_pos_str_out(jw,1),z_pos_str_out(jw,1),SUM(E_struct_out(jw,1:Natoms))/Natoms
+                  write(90,'(2i10,1L7,1i10,1e20.8e4)')jw,time(jw),check_str(jw),number_struct_out(jw),SUM(E_struct_out(jw,1:Natoms))/Natoms
 
                   x_ave_q(1:Natoms) = x_pos_str_out(jw,1:Natoms)
                   y_ave_q(1:Natoms) = y_pos_str_out(jw,1:Natoms)
@@ -1805,7 +1805,7 @@ module routines
                 ! to write ONLY choosen walkers, for example only with unique numbers  102XX,
                 ! which means that 1-st and 2-nd atoms have a largest deviations 
 
-                IF (check_str(jw).AND.(floor(number_struct_out(jw)/1.0d2).EQ.102))THEN     !  1st and 2nd atoms have largest deviations
+                IF (check_str(jw))THEN    !    .AND.(floor(number_struct_out(jw)/1.0d2).EQ.102))THEN     !  1st and 2nd atoms have largest deviations
 
                       x_ave_q(1:Natoms) = x_pos_str_out(jw,1:Natoms)
                       y_ave_q(1:Natoms) = y_pos_str_out(jw,1:Natoms)
