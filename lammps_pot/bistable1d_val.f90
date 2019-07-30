@@ -18,9 +18,7 @@ module bistable1d_val
   & ratio_ctrl          ! delta parameter in equation !! AKASHI
 
   character(256), save :: &
-  & mode,          &  ! initial mode  
-  & fin,           &  ! walker input filename
-  & fout              ! walker output filename
+  & mode                ! initial mode  
 
   logical, save :: &
   & Vswitch , Dist_switch, Debag          ! on or off V, saving of distribution and debagging info

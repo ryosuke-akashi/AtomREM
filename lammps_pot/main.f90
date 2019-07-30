@@ -144,7 +144,9 @@ module routines
     ENDDO
     open(unit=fp,file=fin, status="unknown")
 
-    write(fp,*)"units          lj"
+    open(unit=fpair, file="in.pair", status="old", iostat=ierr)
+    read(unit=fpair, fmt='(A)', iostat=ierr) line
+    write(fp,*)trim(line)
     write(fp,'(a9,3x,a1,1x,a1,1x,a1)')"boundary", bounds(1),bounds(2),bounds(3)
 !    write(fp,*)"boundary    f f f"
     write(fp,*)"atom_style  atomic"
@@ -153,7 +155,6 @@ module routines
     write(fp,*)""
     write(fp,*)"read_data data.case"
     write(fp,*)""
-    open(unit=fpair, file="in.pair", status="old", iostat=ierr)
     DO 
      read(unit=fpair, fmt='(A)', iostat=ierr) line
      IF(ierr.ne.0)exit
@@ -263,7 +264,7 @@ module routines
   !-----------
    subroutine stdin()
    use bistable1d_val, only : Nstep, Nwalker, Natoms, temp, tempFin, steptowrite, dt, ratio, &
-  &                           mode, fin, fout,  Dist_switch, Debag, Vswitch,        &
+  &                           mode,  Dist_switch, Debag, Vswitch,        &
   &                           a_orig, a_vec, b_vec, bounds,                         &
   &                           xlo, xhi, ylo, yhi, zlo, zhi, xy, xz, yz
 
@@ -272,7 +273,7 @@ module routines
    real(8) :: x_orig, y_orig, z_orig
    real(8) :: a_vec1(3), a_vec2(3), a_vec3(3)   
    namelist /input/ Nstep, Nwalker, Natoms, temp, tempFin, steptowrite,                      &
-  &                 dt, ratio, mode, fin, fout,                                     &
+  &                 dt, ratio, mode,                                      &
   &                 x_orig, y_orig, z_orig, a_vec1, a_vec2, a_vec3, bounds
   
    mode = trim(mode)
@@ -384,7 +385,7 @@ module routines
    subroutine gen_walker()
 
      use mt19937
-     use bistable1d_val, only: Nwalker, Natoms,itype, x_pos, y_pos, z_pos, mode, fin, &
+     use bistable1d_val, only: Nwalker, Natoms,itype, x_pos, y_pos, z_pos, mode,&! fin, &
   &                            x_pos_mod, y_pos_mod, z_pos_mod
      use val_mpi, only: ierr, myrank, nprocs
 
@@ -392,6 +393,8 @@ module routines
      real(8) :: ranx
      real(8) :: rany
      real(8) :: ranz
+
+     character(len=64), parameter :: fin="atoms.dat"
 
      ALLOCATE(itype(Natoms))
      ALLOCATE(x_pos(Nwalker,Natoms))
@@ -459,7 +462,7 @@ module routines
   !-----------
    subroutine solve()
 
-   use bistable1d_val, only: Nstep, Nwalker,  Natoms,Nregions,Ncycles, itype,x_pos, y_pos, z_pos, steptowrite, dt, mode, ratio,ratio_ctrl, fout, temp, tempFin, Vswitch, Dist_switch, Debag, xlo, xhi, ylo, yhi, zlo, zhi, xy, xz, yz, bounds
+   use bistable1d_val, only: Nstep, Nwalker,  Natoms,Nregions,Ncycles, itype,x_pos, y_pos, z_pos, steptowrite, dt, mode, ratio,ratio_ctrl, temp, tempFin, Vswitch, Dist_switch, Debag, xlo, xhi, ylo, yhi, zlo, zhi, xy, xz, yz, bounds
    use val_mpi, only: ierr, myrank, nprocs
    use potentials, only: calc_Udiff
    use mt19937
@@ -675,7 +678,7 @@ module routines
        call MPI_BCAST(Energy_min(1:Natoms), Natoms, MPI_REAL8,0,MPI_COMM_WORLD,ierr)
 
        dE = 0.25d0 * temp 
-       E_cut = temp + SUM(Energy_min(1:Natoms))/Natoms 
+       E_cut = 1.5d0*temp + SUM(Energy_min(1:Natoms))/Natoms 
        E_threshold = 1.5d-1 * temp  +  SUM(Energy_min(1:Natoms))/Natoms
 
        IF (myrank.eq.0) THEN
@@ -734,13 +737,11 @@ module routines
 
       call init_genrand(c)
       IF(myrank.eq.0) THEN
-       open(unit=11, file=fout, status="unknown")
        open(unit=12, file="atomic_coord_q.lammpstrj", status="unknown")
 
        open(unit=17, file="path.dat", status="unknown")
        open(unit=18, file="E_atoms.dat", status="unknown")
 
-       open(unit=21, file="log_const.dat",status="unknown")
 
        IF(mode=="Initialization")THEN
         ! to save initial points: find start points  
@@ -1881,11 +1882,9 @@ module routines
    integer :: iw
 
     IF(myrank.eq.0) THEN
-     close(11)
      close(12)
      close(17)
      close(18)
-     close(21)
     ENDIF
 
      IF((myrank.LT.50) .AND. (mode.NE."Initialization")) THEN
