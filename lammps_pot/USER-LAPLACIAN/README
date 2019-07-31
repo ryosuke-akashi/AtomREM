@@ -1,0 +1,73 @@
+What is lammps_user_laplacian
+----------------------------
+lammps_user_laplacian package consists of module "compute diagonalHessian" for LAMMPS
+to calculate the diagonal elements of Hessian matrix 
+(without summation, output is global vector with length N_atoms * 3).
+
+This module is a modificationi (reduction) to the module "compute partialHessian" developed by Anthony B. Costa, 
+anthony.costa@numericalsolutions.org. Refer to http://bitbucket.org/numericalsolutions/lammps-hessian.
+WITH MODIFICATIONS BY S. Kadkhodaei and A. van de Wallei,
+that calculates the Hessian matrix for a group of atoms during a LAMMPS simulation. 
+
+Online access for compute partialHessian: 
+-------------
+Access the package at  https://go.uic.edu/lammps_local_hessian
+
+Citation
+--------
+Publications making substantial use of lammps_local_hessian modules or its derivatives should
+cite this software package and the following paper:
+S. Kadkhodaei and A. van de Walle, "A simple local expression for the prefactor in transition state theory"
+
+Publications making substantial use of lammps_diagonal_hessian modules or its derivatives should
+cite this software package and the following paper:
+
+Yu.S. Nagornov, R.Akashi "AtomREM: A Program Parallel Implementation for Non-empirical Weighted Langevin Mechanics ... "
+
+
+Add to LAMMPS
+-------------
+Take the following steps to add this package to you compilation of LAMMPS.
+
+1- Add the folder USER-LAPLACIAN to the src/ directory of the latest version of LAMMPS. 
+2- In the makefile add the user-laplacian in the USER's Package variables.
+3- make yes-user-laplacian
+4- make mpi  and/or   make mode=shlib mpi  
+5- Add the path to the shared library:    
+
+LD_LIBRARY_PATH=/home/user/path_to_LAMMPS_source/lammps-XXXXX/src/:$LD_LIBRARY_PATH
+
+For a detailed instruction on how to add packages to lammps comiplation, refer to LAMMPS manual
+https://lammps.sandia.gov/doc/Build_package.html
+
+Command line options
+--------------------
+For the compute module
+"compute ID group-ID diagonalHessian epsilon"
+ID = user-assigned name for the computation
+group-ID = ID of the group of atoms to perform the computation on
+diagonalHessian = style name for this command
+epsilon = displacement value for the centeral finite difference method 
+
+
+Output user-laplacian
+----------------
+
+the best practice is to collect partial hessian into a data structure in an external C program, 
+in a coupled simulation where one run LAMMPS as a library. 
+There are examples of how to do this in the examples/COUPLE directory of LAMMPS, for example, examples/COUPLE/simple/simple.c.
+Please, see library.cpp to see example how to get global vector.
+To build LAMMPS as a share library use the tag 
+make mode=shlib mpi
+
+
+
+The output data is a global VECTOR in the format with length N_atoms * 3 (independent on dimension of system):
+1atom xx , yy, zz,
+2atom xx, yy, zz etc
+
+
+ 
+Future development
+-----------------
+Currently these module are designed for serial run. They still can be compiled with mpi but have to be executed on one core. Future improvement will design a parallel implementation. 

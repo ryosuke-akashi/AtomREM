@@ -1,0 +1,84 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!                                                                                                                       !
+!        COPY RIGHT:    GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007                                              !
+!                                                                                                                       !
+!        AUTHORS:       Yuri NAGORNOV  &  RYOSUKE AKSHI                                                                 !
+!                       University of Tokyo, Department of Physics                                                      !
+!															!
+!	 Acknowledgment:                                                                                                !
+!        This research was supported by MEXT as Exploratory Challenge on Post-K                                         !
+!        computer (Frontiers of Basic Science: Challenging the Limits).                                                 !
+!        Project ID:    hp160257, hp170244, hp180184                                                                    !
+!        "POST-K PROJECT"                                                                                               !
+!_______________________________________________________________________________________________________________________!
+!                                                                                                                       !
+!        BEFORE SIMULATION:                                                                                             !
+!        There is a _THEORY_ of method:                                                                                 !
+!                  J. Phys. Soc. Jpn. 87, 063801 (2018) - https://journals.jps.jp/doi/abs/10.7566/JPSJ.87.063801        !
+!        There is an _ALGORITHM_ of method and examples of simulations:                                                 !
+!                  Yu.S.Nagornov, R.Akashi Physica A, 528, 121481 (2019) - https://doi.org/10.1016/j.physa.2019.121481  !
+!        														!
+! 	 CITATION:													!
+!	 --------													!
+!	 Publications making substantial use of AtomREM  or diagonalHESSIAN package for LAMMPS  should			!
+!	 cite this software package and the following paper:								!	 
+!	 Yu.S.Nagornov, R.Akashi  "AtomREM: A Program Parallel Implementation for Non-empirical 			!
+!										Weighted Langevin Mechanics..."		!
+!															!
+!_______________________________________________________________________________________________________________________!
+!															!
+!                                                                                                               	!
+!        This code has three modes of work:                                                                             !
+!                       1 - Initialization - seekeng the initial positions (initialization mode),                       !
+!                       2 - Reaction       - simulation under biasing potential (reaction path mode),                   !
+!                       3 - Langevin       - simulation of Langevin mechanics (relaxation mode)                         !
+!                                                                                                                       !
+!                                                                                                                       !
+!        The log scale for calculation of P and Q functions is used to avoid the overflow problem                       !
+!                                                                                                                       !      
+!        The reaction path is drawn by saving of maxima of Q distribution, in other words                               ! 
+!        the reaction path is the average atomic coordinates and atomic energies.                                       !
+!                                                                                                                       !
+!        The code utilized the LAMMPS  (https://lammps.sandia.gov) as a shared library for potential calculation using  !
+!        the diagonalHESSIAN package (reduction from "compute_partialHESSIAN")                                          !
+!															!
+!	 To install and use the diagonalHESSIAN package for LAMMPS, please, see README in directory USER-LAPLACIAN	!
+!															!
+!_______________________________________________________________________________________________________________________!
+!                                                                                                                       !
+!                                                                                                                       !
+!	 CONTENT:													!
+!	 atoms.dat           -  the INPUT file with initil coordinates of all atoms                                     !
+!	 param_3N.in         -  the INPUT file with parameters of simulation						!
+!	 Makefile	     -  the makefile to make executable file 							! 
+!        libfwrapper2.c      -  the module to call LAMMPS                                                               !
+!        potentials_lmp.f90  -  the module to calculate the potential energies, forces and laplacian for all atoms      !
+!													and all walkers !
+!	 mt19937.f90	     -  the module to generate the random numbers, using the Mersenne twister algorithm         !
+!					by T.Nishimura and M.Matsumoto [M. Matsumoto, T. Nishimura, "Mersenne twister:  !
+!					A 623-dimensionally equidistributed uniform pseudo-random number generator",    !
+!					ACM Trans. Model. Comput. Simul. 8 (1) (1998) 3-30. doi:10.1145/272991.272995]  !
+!	 bistable1d_val.f90  -  the module to define the global variables						!
+!	 lattice.f90	     -  the module for NVE ansamble with periodic boundaries 					! 
+!	 main.f90	     -  the main program to solve Master equation						! 
+!	 val_mpi_lmp.f90     -  the module to define the global variables for LAMMPS					! 
+!	 sim.sh		     -  an example of bash scsript to submit job for server					!
+!	 USER-LAPLACIAN      -  the directory with USER-LAPLACIAN package for LAMMPS, which has compute_diagonalHessian !
+! 											package				!
+!_______________________________________________________________________________________________________________________!
+!                                                                                                                       !
+!                                                                                                                       !
+!	 SIMULATION:													!
+!	 0. Install USER-LAPLACIAN package and other packages for potential calculation					!
+!	 1. Install LAMMPS as an shared library and add path to LD_LIBRARY_PATH  					!
+!	 2. Define parameters in param_3N.in file									!
+!	 3. Define the coordinates and types of atoms in atoms.dat file							!
+!	 4. Define the potential, cutoff and potential's parameters for LAMMPS in main.f90 file (subroutine init_lmp)   !
+! 	 5. Make installation:  make       , you will get a.out file in success case 					!
+!	 6. To run simulation:   mpirun -np 16 ./a.out < param_3N.in > out   OR  qsub  sim.sh				!
+!															! 
+!                                                                                                                       !
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
