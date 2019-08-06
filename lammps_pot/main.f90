@@ -728,7 +728,7 @@ module routines
 
       !  \initial delta parameter
      
-      inv_G=0.1d0    ! inverse Gamma parameter in Langevin equation / term
+      inv_G=1.0d0    ! inverse Gamma parameter in Langevin equation / term
 
       ratio_ini = ratio_ctrl
 
