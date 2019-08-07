@@ -8,7 +8,7 @@
 !        Acknowledgment:                                                                                                !
 !        This research was supported by MEXT as Exploratory Challenge on Post-K                                         !
 !        computer (Frontiers of Basic Science: Challenging the Limits).                                                 !
-!        Project ID:    hp160257, hp170244, hp180184                                                                    !
+!        Project ID:    hp160257, hp170244, hp180184, hp190176                                                          !
 !        "POST-K PROJECT"                                                                                               !
 !_______________________________________________________________________________________________________________________!
 !                                                                                                                       !
@@ -30,14 +30,10 @@
 !	CONTENT OF DIRECTORY												!
 !	in EACH examlpe we put IN/ and OUT/ folders:									!
 !	- IN/ AND OUT/ folders contain the input and output files for 1 simulation 					!
-! 	- ARGON_7 contains the examples for different initial configurations and examples of reaction paths, 		!
-!							PLEASE, see README_ARGON_7 in the ARGON_7 folder 		!
-! 	- ARGON_13 contains two examples for argon cluster with 13 atoms for two reaction paths				!
-!	- ARGON_38 contains two examples for argon cluster with 38 atoms for two reaction paths, 			! 
-!			the SIMULATION_2 case has several stages, that is why it has continuous simulation and	 	!
-!			example only for final stage. Whole reaction path is in the folder /PATH_WAY_38/		! 
-!	- ARGON_CRYSTAL contains the example on hcp - fcc transformation in Lennard-Jones argon crystall, 		!
-!			OUT/ folder has only reaction paths data, and OUT_ALL_DATA folder has all output files		!
+! 	- ARGON_7 contains an example for argon cluster with 7 atoms					 		!
+! 	- ARGON_13 contains an example for argon cluster with 13 atoms for two reaction paths				!
+!	- ARGON_38 contains an example for argon cluster with 38 atoms for two reaction paths 				! 
+!	- ARGON_CRYSTAL contains the example on hcp - fcc transformation in Lennard-Jones argon crystal 		!
 !	- CYCLOBUTANE contains the example on cyclobutane molecule transformation through one saddle point 		!
 !			to the several products										!  
 !                                                                                                                       !
