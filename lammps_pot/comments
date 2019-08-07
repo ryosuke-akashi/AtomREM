@@ -1,5 +1,0 @@
-2018/12/26
- write lattice.f90 subroutine
-2018/12/28
- separate bistable1d_val module from main.f90
- (cont.)write lattice.f90 subroutine
