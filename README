@@ -1,0 +1,8 @@
+[Installation]
+
+1) git clone https://github.com/ryosuke-akashi/AtomREM
+2) Please read reference (https://arxiv.org/abs/1907.13316) for further installation steps.
+
+**NOTE**
+The installation requires 600MB disk space,
+as examples/ directory includes several output examples for reference.
