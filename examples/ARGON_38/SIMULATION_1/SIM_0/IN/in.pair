@@ -1,2 +1,0 @@
-pair_style  lj/cut  8.0
-pair_coeff  *  *  1.671 3.4
