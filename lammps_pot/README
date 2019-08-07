@@ -22,8 +22,8 @@
 !	 --------													!
 !	 Publications making substantial use of AtomREM  or diagonalHESSIAN package for LAMMPS  should			!
 !	 cite this software package and the following paper:								!	 
-!	 Yu.S.Nagornov, R.Akashi  "AtomREM: A Program Parallel Implementation for Non-empirical 			!
-!										Weighted Langevin Mechanics..."		!
+!	 Yu.S.Nagornov, R.Akashi  "AtomREM: Non-empirical seeker of the minimum energy escape paths			! 
+! 				on many-dimensional potential landscapes without coarse graining", arXiv:1907.13316 	!
 !															!
 !_______________________________________________________________________________________________________________________!
 !															!

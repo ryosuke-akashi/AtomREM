@@ -1,0 +1,26 @@
+&input
+Nstep = 32000,
+Nwalker = 1728,
+Natoms = 48,
+temp = 0.001,
+factor = 1000.0,
+steptowrite = 50,
+dt  = 0.0005,
+ratio = 0.2
+x_ini =  0.1  1.5
+y_ini =  0.2  1.5
+z_ini =  0.3  0.0
+mode = "load"
+Vswitch = .true.
+Debag = .false.
+Dist_switch = .false.
+fin = "atoms.dat"
+fout = "out.dat"
+x_orig = -0.0030807
+y_orig = -0.0053359
+z_orig = -0.0075461
+a_vec1 = 2.2061606 0.0 0.0
+a_vec2 = 0.0 3.8211859 0.0
+a_vec3 = 0.0 0.0 5.403966
+bounds = p p p
+/

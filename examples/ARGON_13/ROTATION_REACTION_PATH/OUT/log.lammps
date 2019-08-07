@@ -1,0 +1,28 @@
+LAMMPS (5 Jun 2019)
+ units          lj
+ boundary   f f f
+ atom_style  atomic
+ atom_modify  map array
+ atom_modify  sort 0 0.0
+ 
+ read_data data.case
+  triclinic box = (-7 -7 -10) to (7 7 5) with tilt (0 0 0)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  13 atoms
+  read_data CPU = 0.0015409 secs
+ 
+ pair_style  lj/cut   8.00000000000000
+ 
+pair_coeff     *     *   1.6710   3.4000
+ 
+ neighbor      0.3  bin
+ compute       peatom all pe/atom
+ 
+ compute         hsmtrxD    all  diagonalHessian  5e-9
+ 
+ compute         frcX    all property/atom fx
+ compute         frcY    all property/atom fy
+ compute         frcZ    all property/atom fz
+ log none
+
