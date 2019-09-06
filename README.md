@@ -1,3 +1,5 @@
+[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/nagornovys/Cancer_cell_evolution/blob/master/LICENSE)
+
 # AtomREM - Atom*istic* R*are* E*vent* M*anager*
 
 ---
