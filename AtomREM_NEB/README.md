@@ -71,7 +71,7 @@ for each NEB calculation (with two different cell parameters). To extract energi
 
 NOTE: 
 
-* the whole.sh script is an example to submit job for HPC system like ISSP supercomputer in University of Tokyo (based on SUSE operation system), 
+* the whole.sh script is an example to submit job for HPC system like ISSP supercomputer in University of Tokyo (based on SUSE Linux operation system), 
 which is included all steps for NEB calculations and PW relaxation. 
 
 * all scripts in the folder /SCRIPTS/. 
