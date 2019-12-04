@@ -62,7 +62,7 @@ and start again from the same directory. Of course, the output directory should 
  That is why after NEB we should make relaxation of the cell parameters for each image independently (with the fix atomic positions). 
 
 To generate jobs for PW relaxation with the fix atomic positions you can use script "gen\_PW\_relax.sh", which generates input files 
-for quantum espresso (from standard input) with the different atomic coordinates (extracted from NEB calculation). 
+for quantum espresso (from standard input "H3S.in") with the different atomic coordinates (extracted from NEB calculation). 
 All calculations are saved to different folders, like IM\_1/, IM\_2/ , etc.
 
   **VIII) Calculate minimum energy path:**  To see energy minimum path we should to extract information about energies from PW relaxation
@@ -75,8 +75,9 @@ NOTE:
 * the whole.sh script is an example to submit job for HPC system like ISSP supercomputer in University of Tokyo (based on SUSE Linux operation system), 
 which is included all steps for NEB calculations and PW relaxation. 
 
-* all scripts in the folder /SCRIPTS/. 
+* all scripts are in the folder /SCRIPTS/. 
 
+* a calculation is needed the high computational cost, so this is the example for 18 nodes with 24 cores in each (432 processors in total).
 
 
 
