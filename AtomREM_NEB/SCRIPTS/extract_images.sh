@@ -1,10 +1,17 @@
 #!/bin/sh
 #
 
-f='inout_AtomREM/atomic_coord_q.lammpstrj' 
+echo "run extract images from coordinates of path after AtomREM simulation: sh extract_images.sh "
+
+f=$1
+
+
+## f='inout_AtomREM/atomic_coord_q.lammpstrj' 
 echo $f
 
-f2='inout_AtomREM/coordinates_rank_100020.lammpstrj'
+f2=$2
+
+## f2='inout_AtomREM/coordinates_rank_100020.lammpstrj'
 echo $f2
 
 num=9

@@ -5,10 +5,10 @@
    tprnfor= .true.,
    wf_collect = .true.,
    verbosity= "high",
-   etot_conv_thr = 1.0d-10,
+   forc_conv_thr = 1.0d-8,
    prefix='H3S',
-   pseudo_dir = "../../../pseudo/",
-   outdir= "./IM_1/",
+   pseudo_dir = '../../../pseudo/',
+   outdir= './',
    nstep=2000,
 /
 &system
@@ -16,7 +16,7 @@
    celldm(1)= 7.9720789,
    nat= 16,
    ntyp=2,
-   ecutwfc= 80,
+   ecutwfc= 160,
    occupations="smearing", smearing="methfessel-paxton", degauss=0.03,
 /
 &electrons

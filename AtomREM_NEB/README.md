@@ -10,7 +10,7 @@ PROCEDURE
 ---
 
   **I) Fix stable state:**  First, we need to fix stable state and calculate cell parameters and atomic positions using DFT calculation.
-For example, in // directory the script to calculate stable state for SH3 system under pressure 200 GPa for 16 atoms. 
+For example, in /exmpl\_PW/ directory the script to calculate stable state for SH3 system under pressure 200 GPa for 16 atoms. 
 To get the possibility for atoms to move according to a reaction, we defined the cell with the free structure in quantum espresso [1-3]
 
   **II) Preparation for DPMD potential:** To use AtomREM we may use classical potentials or Deep Potential molecular dynamics [4,5].  
@@ -19,15 +19,15 @@ The preparation of DPMD potential takes time and computational resources, but it
 approximation on deep learning neural network. 
 
   **III) AtomREM simulation:** To use AtomREM, kindly see instructions in the work [6]. After the simulation, we have possible reaction paths, which go to the initial and new stable states.
-We should find a new one and copy files "atomic_coord_q.lammpstrj"  and "coordinates_rank_100XXX.lammpstrj" to a working directory. 
+We should find a new one and copy files "atomic\_coord\_q.lammpstrj"  and "coordinates\_rank\_100XXX.lammpstrj" to a working directory. 
 
 
   **IV) Relaxation of the new structure:** Using DFT calculation make the relaxation of the new structure and find atomic positions together with new cell parameters.
 
 
-  **V) Generate atomic positions for NEB calculation:** You can use "extract_images.sh" script to generate images for NEB calculation.
-Please, pay attantion, you should to define paths to two files: "atomic_coord_q.lammpstrj"  and "coordinates_rank_100XXX.lammpstrj" in the script.
-After that, kindly use the script "make_IN.sh". As a source file to make an input file for NEB calculation script uses the "H3S_initial.in" file.  
+  **V) Generate atomic positions for NEB calculation:** You can use "extract\_images.sh" script to generate images for NEB calculation.
+Please, pay attantion, you should to define paths to two files: "atomic\_coord\_q.lammpstrj"  and "coordinates\_rank\_100XXX.lammpstrj" in the script.
+After that, kindly use the script "make\_IN.sh". As a source file to make an input file for NEB calculation script uses the "H3S\_initial.in" file.  
 
 
   **VI) Preparation of NEB calculation:** The first one is using the cell parameters for a stable state. The second simulation is using new cell parameters for a new structure.
@@ -36,11 +36,11 @@ For each calculation, we can use an acceleration procedure like:
 
  - to calculate the NEB reaction path using short cutoff, for example, 20 Ry;
 
- - to repeat the NEB calculation from the last step, but using long cutoff, for example, 80 Ry.
+ - to repeat the NEB calculation from the last step, but using long cutoff, for example, 80 Ry (using "H3S\_initial\_2.in" file).
 
  To realize this procedure, you should change the input script for quantum espresso like:
 
- - generate new positions in input with "gen_second_neb.sh" script, which extracts the last images and add them to input script;
+ - generate new positions in input with "gen\_second\_neb.sh" script, which extracts the last images and add them to input script;
 
  - change the cutoff for larger value, as 80 Ry or more;
 
@@ -61,12 +61,24 @@ and start again from the same directory. Of course, the output directory should 
 
  That is why after NEB we should make relaxation of the cell parameters for each image independently (with the fix atomic positions). 
 
-To generate jobs for PW relaxation with the fix atomic positions you can use script "gen_PW_relax.sh", which generates input files 
-for quantum espresso (from standard input) with the different atomic coordinates (extracted from NEB calculation). 
-All calculations are saved to different folders, like IM_1/, IM_2/ , etc.
+To generate jobs for PW relaxation with the fix atomic positions you can use script "gen\_PW\_relax.sh", which generates input files 
+for quantum espresso (from standard input "H3S.in") with the different atomic coordinates (extracted from NEB calculation). 
+All calculations are saved to different folders, like IM\_1/, IM\_2/ , etc.
 
   **VIII) Calculate minimum energy path:**  To see energy minimum path we should to extract information about energies from PW relaxation
-for each NEB calculation (with two different cell parameters). To extract energies, you can use script "extract_minimum_energies.sh".
+for each NEB calculation (with two different cell parameters). To extract energies, you can use script "extract\_minimum\_energies.sh".
+
+
+NOTE: 
+---
+
+* the whole.sh script is an example to submit job for HPC system like ISSP supercomputer in University of Tokyo (based on SUSE Linux operation system), 
+which is included all steps for NEB calculations and PW relaxation. 
+
+* all scripts are in the folder /SCRIPTS/. 
+
+* a calculation is needed the high computational cost, so this is the example for 18 nodes with 24 cores in each (432 processors in total).
+
 
 
 References

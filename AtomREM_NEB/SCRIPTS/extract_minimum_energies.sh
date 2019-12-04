@@ -1,5 +1,11 @@
+#!/bin/sh
+#
+ echo " extract minimal energy after PW relaxation for each image:   sh extract_minimum_energies.sh "
+
 
 date
+
+
 
 grep -n "! "  IM_*/H3S.out  > 1.txt
 
