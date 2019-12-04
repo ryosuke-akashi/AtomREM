@@ -36,7 +36,7 @@ For each calculation, we can use an acceleration procedure like:
 
  - to calculate the NEB reaction path using short cutoff, for example, 20 Ry;
 
- - to repeat the NEB calculation from the last step, but using long cutoff, for example, 80 Ry.
+ - to repeat the NEB calculation from the last step, but using long cutoff, for example, 80 Ry (using "H3S\_initial\_2.in" file).
 
  To realize this procedure, you should change the input script for quantum espresso like:
 
