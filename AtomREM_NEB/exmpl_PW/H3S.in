@@ -1,0 +1,60 @@
+&control
+   calculation= "vc-relax",
+   restart_mode= "from_scratch",
+   tstress= .true.,
+   tprnfor= .true.,
+   wf_collect = .true.,
+   verbosity= "high",
+   forc_conv_thr = 1.0d-8,
+   prefix='H3S',
+   pseudo_dir = '../../../pseudo/',
+   outdir= './',
+   nstep=2000,
+/
+&system
+   ibrav=0,
+   celldm(1)= 7.9720789,
+   nat= 16,
+   ntyp=2,
+   ecutwfc= 160,
+   occupations="smearing", smearing="methfessel-paxton", degauss=0.03,
+/
+&electrons
+   conv_thr =  1.0d-10,
+   mixing_beta = 0.2,
+/
+&IONS
+   trust_radius_min = 2.0D-5,
+   trust_radius_max = 1.0D-2,
+   trust_radius_ini = 1.0D-2,
+/
+&CELL
+   press = 2000.00,
+/
+ATOMIC_SPECIES
+S 32.066 S.GGA.UPF,
+H 1.0079 H-pbe-default_1.UPF,
+ATOMIC_POSITIONS {crystal}
+S        0.233184183   0.284760115   0.045337057
+S        0.733186472   0.284760060   0.545341685
+S        0.233187811   0.784759337   0.545327061
+S        0.733185381   0.784757383   0.045340375
+H       -0.016844954   0.034733965   0.044894852
+H        0.483191066   0.034776651   0.044916027
+H       -0.016807035   0.534769182   0.044885136
+H        0.483147248   0.534740985   0.044895652
+H       -0.016792253   0.034781812   0.544897579
+H        0.483160464   0.034729983   0.544919715
+H       -0.016828077   0.534727197   0.544885256
+H        0.483196808   0.534775400   0.544897841
+H        0.233205843   0.284771359   0.546331913
+H        0.733184631   0.284769378   0.046348374
+H        0.233189545   0.784781976   0.046303164
+H        0.733212568   0.784769718   0.546341215
+K_POINTS {automatic}
+8 8 8 0 0 0
+CELL_PARAMETERS {alat}
+   1.000000000   0.000000000   0.000000000
+   0.000000000   1.000000000   0.000000000
+   0.000000000   0.000000000   0.707068483
+

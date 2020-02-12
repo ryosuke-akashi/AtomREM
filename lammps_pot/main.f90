@@ -678,8 +678,8 @@ module routines
        call MPI_BCAST(Energy_min(1:Natoms), Natoms, MPI_REAL8,0,MPI_COMM_WORLD,ierr)
 
        dE = 0.25d0 * temp 
-       E_cut = 1.5d0*temp + SUM(Energy_min(1:Natoms))/Natoms 
-       E_threshold = 1.5d-1 * temp  +  SUM(Energy_min(1:Natoms))/Natoms
+       E_cut = 0.5d0*temp + SUM(Energy_min(1:Natoms))/Natoms 
+       E_threshold = 0.5d-1 * temp  +  SUM(Energy_min(1:Natoms))/Natoms
 
        IF (myrank.eq.0) THEN
         write(48,*)"Energy_cut = ", E_cut
@@ -1078,6 +1078,16 @@ module routines
 
        Voff = .false.
        DO istep =1, Nstep
+
+        !!! Correction of all position in the cell if periodic boundaries: 
+        call lattice(Nwalker, Natoms, x_pos, y_pos, z_pos,          &
+                &                   x_pos_tmp(1:Nwalker,1:Natoms), y_pos_tmp(1:Nwalker,1:Natoms), z_pos_tmp(1:Nwalker,1:Natoms) )
+
+        x_pos(1:Nwalker,1:Natoms) = x_pos_tmp(1:Nwalker,1:Natoms)
+        y_pos(1:Nwalker,1:Natoms) = y_pos_tmp(1:Nwalker,1:Natoms)
+        z_pos(1:Nwalker,1:Natoms) = z_pos_tmp(1:Nwalker,1:Natoms)
+
+        !!! 
 
         call system_clock(ct0, count_rate, count_max)
 

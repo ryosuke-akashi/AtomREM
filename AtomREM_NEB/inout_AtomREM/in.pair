@@ -1,0 +1,2 @@
+pair_style  deepmd /home/akashi/DeePMD_pots/frozen_model_rev6.pb
+pair_coeff
